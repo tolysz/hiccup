@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns,OverloadedStrings #-}
+{-# LANGUAGE BangPatterns, OverloadedStrings #-}
 
 module TclParse ( TclWord(..)
                  ,runParse 
@@ -39,8 +39,9 @@ runParse = parseStatements `pass` parseEof
 
 asCmds lst = [(c,a) | (c:a) <- lst]
 
+parseStatements :: Parser SubCmd
 parseStatements = trimmed $ ((parseStatement `sepBy` stmtSep) `pass` trailing) `wrapWith` asCmds
- where stmtSep = parseMany1 (eatSpaces .>> parseOneOf "\n;" .>> eatSpaces)
+ where stmtSep = parseMany1 (eatSpaces .>> parseOneOf ("\n;" :: [Char]) .>> eatSpaces)
        trailing = parseMany stmtSep
 
 parseStatement :: Parser [TclWord]
@@ -154,10 +155,10 @@ parseSubst (SubstArgs vars esc cmds) = inner `wrapWith` sconcat
        sconcat (t:xs) = t : sconcat xs
        spanStrs (SStr x:xs) a = spanStrs xs (x:a)
        spanStrs rst a = (reverse a,rst)
-       sreduce lst = case lst of
-               []                 -> []
-               (SStr x:SStr y:xs) -> sreduce ((SStr (B.append x y)):xs)
-               (x:xs) -> x : sreduce xs
+--        sreduce lst = case lst of
+--                []                 -> []
+--                (SStr x:SStr y:xs) -> sreduce ((SStr (B.append x y)):xs)
+--                (x:xs) -> x : sreduce xs
 
 escCharStr = B.singleton . escapeChar
 {-# INLINE escapeChar #-}

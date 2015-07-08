@@ -80,7 +80,7 @@ parseNSQual ns = case parseNSTag ns of
                   NS gq nsl    -> NSQual (Just (NS gq (init nsl))) (last nsl)
 {-# INLINE parseNSQual #-}
 
-	       
+
 parseNSTag ns = toNSTag (ns `splitWith` nsSep) where
    toNSTag nl = if isAbs then NS True (tail nl)
                          else NS False nl

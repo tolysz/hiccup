@@ -15,12 +15,13 @@ data-files:          README
 extra-source-files:  example.tcl atests.tcl include.tcl
 
 Library
-    ghc-options:         -O2 -funbox-strict-fields -W -fglasgow-exts
+    ghc-options:         -O2 -funbox-strict-fields -W
+    -- -fglasgow-exts
     ghc-prof-options:    -auto-all -prof
     extensions:          BangPatterns
     exposed-modules: Hiccup, TclObj, Extend
-    build-depends:   base, HUnit, time, mtl, haskell98, parsec, bytestring, 
-                     containers, random, unix, array, regex-posix, directory
+    build-depends:   base, HUnit, time, mtl, parsec, bytestring, readline,
+                     containers, random, unix, array, regex-posix, directory, transformers
     other-modules:   TObj, VarName, Common, CmdList, Util, Core,
                      Internal.Types, Internal.Util, Internal.InterpSpec, 
                      RToken, BSParse, TclParse, EventMgr, TclChan, TclErr, MathOp, TclLib,
@@ -32,6 +33,6 @@ Library
                      Match, Format, ArgParse 
 Executable hiccup
     ghc-options:         -O2 -funbox-strict-fields -W -fglasgow-exts
-    build-depends:       editline
+--    build-depends:       editline
     main-is:             Main.hs
 

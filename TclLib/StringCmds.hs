@@ -1,10 +1,15 @@
-{-# LANGUAGE BangPatterns,OverloadedStrings, FlexibleContexts #-}
+{-# LANGUAGE BangPatterns
+           , OverloadedStrings
+           , FlexibleContexts
+           , ScopedTypeVariables #-}
+
 module TclLib.StringCmds (stringCmds, 
                           stringInits,
                           stringTests) where
 
 import Common
 import Control.Monad (liftM)
+import Control.Exception -- (try)
 import Util
 import Match (match, matchTests)
 import qualified System.IO.Error as IOE 
@@ -213,9 +218,9 @@ cmdRegexp args = case args of
                                varSetNS (T.asVarName matchVar) (T.fromBStr mv)
                                return (T.fromBool True)
   _         -> vArgErr "regexp exp string ?matchVar?"
- where wrapRE f = do r <- io $ IOE.try (return $! f)
+ where wrapRE f = do r <- io $ try (return $! f)
                      case r of
-                        Left _ -> fail "invalid regex"
+                        Left (_ :: SomeException ) -> fail "invalid regex"
                         Right v -> return $! v
 
 stringTests = TestList [ matchTests, toIndTests, mapReplaceTests ]

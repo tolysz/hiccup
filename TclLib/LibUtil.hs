@@ -68,7 +68,7 @@ mkEnsemble name subs = top
                           _              -> no_match n names
                  _   -> no_match n names
         no_match n lst = tclErr $ "unknown or ambiguous subcommand " ++ show n ++ ": must be " 
-			                        ++ commaList "or" (map unpack lst)
+                                  ++ commaList "or" (map unpack lst)
         subMap = Map.fromList (mapFst pack subs)
         plookup s = Map.lookup s subMap
         cmdMapNames = Map.keys

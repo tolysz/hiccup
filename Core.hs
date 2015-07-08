@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns,OverloadedStrings #-}
+{-# LANGUAGE BangPatterns,OverloadedStrings, FlexibleContexts #-}
 module Core (doCond, evalExpr, evalArgs, subst, coreTests) where
 
 import Common
@@ -77,6 +77,7 @@ doCall pn args !mproc = do
      Just proc -> proc `applyTo` args 
 {-# INLINE doCall #-}
 
+doCond :: T.TclObj -> TclM Bool
 doCond obj = evalExpr obj >>= T.asBool
 {-# INLINE doCond #-}
 

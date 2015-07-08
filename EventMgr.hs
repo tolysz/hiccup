@@ -12,9 +12,11 @@ import Control.Monad (liftM)
 
 type EvtID = BString
 data EvtTime = ETime UTCTime | EIdle deriving (Eq)
-data Event a = Evt { evtTime :: EvtTime, 
-                     evtID :: EvtID, 
-	                 evtAction :: a }
+data Event a = Evt
+  { evtTime :: EvtTime
+  , evtID :: EvtID
+  , evtAction :: a
+  }
 
 instance Ord EvtTime where
    compare (ETime t1) (ETime t2) = compare t1 t2

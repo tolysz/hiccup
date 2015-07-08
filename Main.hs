@@ -1,12 +1,14 @@
 module Main where
 
 import System.IO
-import System
+-- import System
+import System.Environment (getArgs)
 import Hiccup
 import qualified TclObj as T
 import Extend
 import Control.Monad
-import System.Console.Editline.Readline
+-- import System.Console.Editline.Readline
+import System.Console.Readline
 import qualified Data.ByteString.Char8 as B
 
 main = do args <- getArgs 
@@ -19,7 +21,7 @@ main = do args <- getArgs
  where unlessErr x f = either (\e -> B.putStrLn e) f x
        runRepl i = do mline <- readline "hiccup> "
                       case mline of
-                        Nothing -> return ()
+                        Nothing -> print "bam" >> return ()
                         Just "" -> runRepl i
                         Just ln -> do addHistory ln 
                                       v <- interpEvalStr (B.pack ln) i

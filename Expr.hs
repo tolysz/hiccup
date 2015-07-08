@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts#-}
 module Expr (runAsExpr, CBData(..), exprTests) where
 
 import Test.HUnit

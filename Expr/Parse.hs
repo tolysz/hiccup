@@ -31,7 +31,7 @@ parseDoub i = dubpart </> exppart
        dtail = (consumed (pchar '.' .>> digits)) `wrapWith` B.unpack
        digits = getPred1 isDigit "digit"
        exppart = parseExp `wrapWith` (\e -> TDouble ((fromIntegral i) * (10 ** (fromIntegral e))))
-                 
+
 parseExp = pchar 'e' .>> parseDecInt
 
 operators = mkops [ 
@@ -163,7 +163,7 @@ bsExprTests = "BSExpr" ~: TestList [atomTests, numTests, intTests, itemTests, de
      ,"sin(4)" `should_be` (DFun "sin" [int 4])
      ,"pow(2,3)" `should_be` (DFun "pow" [int 2, int 3])
      ,"[incr x]" `should_be` (DCom [(Word "incr", [Word "x"])]) 
-   
+
    ] where should_be = should_be_ parseDep
 
   itemTests = TestList [
@@ -172,7 +172,7 @@ bsExprTests = "BSExpr" ~: TestList [atomTests, numTests, intTests, itemTests, de
      ,"--4" `should_be` (UnApp OpNeg (int (-4)))
      ,"![is_done]" `should_be` (UnApp OpNot (DepItem (DCom [(Word "is_done", [])])))
    ] where should_be = should_be_ parseItem
- 
+
   ternIfTests = TestList [
      " 1 ? 3 : 4" `should_be` (int 1, int 3, int 4)
      ,"1?3:4" `should_be` (int 1, int 3, int 4)
@@ -194,7 +194,7 @@ bsExprTests = "BSExpr" ~: TestList [atomTests, numTests, intTests, itemTests, de
      ," 1 ? 55 : 44" `should_be` (TernIf (int 1) (int 55) (int 44))
      ," 3 > 4 ? {yes} : {no}" `should_be` (TernIf (app2 (int 3) OpGt (int 4)) (blo "yes") (blo "no"))
    ] where should_be dat res = (B.unpack dat) ~: Right (res, "") ~=? parseExpr dat
-  
+
   numTests = TestList [
       "44" `should_be` TInt 44
       ,"0xa" `should_be` TInt 10

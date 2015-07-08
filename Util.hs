@@ -6,7 +6,8 @@ module Util (BString, joinWith, joinWithBS, pack, unpack, bsNull,
              utilTests )  where
 
 import qualified Data.ByteString.Char8 as B
-import Control.Monad.Error
+-- import Control.Monad.Error
+import Control.Monad.Except
 import Data.List(intersperse)
 import Test.HUnit
 import Data.Char (toLower)

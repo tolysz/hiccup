@@ -1,7 +1,9 @@
 {-# LANGUAGE BangPatterns #-}
 
-module TclLib.MathProcs (mathCmds, 
-	mathTests ) where
+module TclLib.MathProcs
+   ( mathCmds
+   , mathTests
+   ) where
 
 import Common
 import qualified TclObj as T
@@ -42,7 +44,7 @@ mathInt v =  asI >>= return . T.fromInt
                Nothing -> case T.asDouble v of
                              Just d -> return $ floor d
                              Nothing -> tclErr "non-numeric operand to \"int\""
-   
+
 
 mathBool v = T.asBool v >>= return . T.fromBool
 
@@ -60,7 +62,7 @@ mathRand = io randomIO >>= return . T.fromDouble
 onearg f = m1 inner
  where inner x = do
             d <- T.asDouble x
-	    return (T.fromDouble (f d))
+            return (T.fromDouble (f d))
 {-# INLINE onearg #-}
 
 
@@ -92,11 +94,9 @@ cmdNot args = case args of
   [x] -> opNot x
   _   -> argErr "!"
 
-
 lessThanProc args = case args of
    [a,b] -> return $! lessThan a b
    _     -> argErr "<"
-
 
 greaterThanProc args = case args of
    [a,b] -> return $! greaterThan a b

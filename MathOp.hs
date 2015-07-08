@@ -46,7 +46,7 @@ squarert x = do
       Just i -> return $! T.fromDouble (sqrt (fromIntegral i))
       Nothing -> do
         d1 <- T.asDouble x
-	return $! T.fromDouble (sqrt d1)
+        return $! T.fromDouble (sqrt d1)
 
 absfun x = case T.asInt x of
             Nothing -> do d <- T.asDouble x
@@ -60,7 +60,7 @@ pow x y = do
        _ -> do 
            d1 <- T.asDouble x
            d2 <- T.asDouble y
-	   return $! T.fromDouble (d1 ** d2)
+           return $! T.fromDouble (d1 ** d2)
 
 
 lessThan a b = T.fromBool $! (tclCompare a b == LT)
@@ -82,7 +82,7 @@ tclCompare a b =
      (Just i1, Just i2) -> compare i1 i2
      _  -> case (T.asDouble a, T.asDouble b) of
                   (Just d1, Just d2) -> compare d1 d2
-		  _ -> compare (T.asBStr a) (T.asBStr b)
+                  _ -> compare (T.asBStr a) (T.asBStr b)
 {-# INLINE tclCompare #-}
 
 opNegate :: (Monad m, T.ITObj t) => t -> m t

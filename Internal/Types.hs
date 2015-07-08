@@ -17,7 +17,7 @@ class Runnable t where
   evalTcl :: t -> TclM T.TclObj
 
 newtype TclM a = TclM { unTclM :: ErrorT Err (StateT TclState IO) a }
- deriving (MonadState TclState, MonadError Err, MonadIO, Monad)
+ deriving (MonadState TclState, MonadError Err, MonadIO, Applicative, Functor, Monad)
 
 data Namespace = TclNS {
          nsName :: BString,
@@ -101,7 +101,7 @@ type TraceCB = Maybe (IO ())
 type VarMap = Map.Map BString (TraceCB,TclVar)
 
 runTclM :: TclM a -> TclState -> IO (Either Err a, TclState)
-runTclM code env = runStateT (runErrorT (unTclM code)) env
+runTclM = runStateT . runErrorT . unTclM
 
 execTclM c e = do 
   (r,s) <- runTclM c e 

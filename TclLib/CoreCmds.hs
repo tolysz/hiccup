@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns,OverloadedStrings #-}
+{-# LANGUAGE BangPatterns,OverloadedStrings, FlexibleContexts #-}
 module TclLib.CoreCmds (coreCmds, coreInits) where
 import Common
 import Internal.Types (procArgs)
@@ -8,7 +8,8 @@ import Control.Monad (liftM)
 import Data.Char (isDigit)
 import TclErr 
 import VarName (parseProc, NSQual(..), toBStr)
-import System (getProgName)
+--import System (getProgName)
+import System.Environment (getProgName)
 import Match (globMatches)
 import Proc.Util (mkProc, mkLambda)
 import Proc.Params

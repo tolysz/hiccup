@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -XGeneralizedNewtypeDeriving #-}
-{-# LANGUAGE BangPatterns,OverloadedStrings #-}
+{-# LANGUAGE BangPatterns,OverloadedStrings, FlexibleContexts #-}
 module Proc.CodeBlock (toCodeBlock, runCodeBlock, CodeBlock) where
 
 import Control.Monad.State
@@ -34,7 +34,7 @@ data CState = CState Int CmdIds deriving (Show)
 type CErr = String
 
 newtype CompM a = CompM { unCompM :: ErrorT CErr (StateT CState IO) a }
- deriving (MonadState CState, MonadError CErr, MonadIO, Monad)
+ deriving (MonadState CState, MonadError CErr, MonadIO, Monad, Applicative,Functor)
 
 runCompM code s = runStateT (runErrorT (unCompM code)) s
 

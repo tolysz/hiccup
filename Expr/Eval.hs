@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns,OverloadedStrings #-}
 module Expr.Eval ( runCExpr, Callback, CBData(..), exprEvalTests) where
 import Expr.TExp
-import Expr.Parse
+-- import Expr.Parse
 import Expr.Compile
 import qualified TclObj as T
 import VarName

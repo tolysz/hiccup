@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts #-}
 module Common (TclM
        ,TclState
        ,Runnable(..)
@@ -75,12 +75,12 @@ module Common (TclM
 
 
 import qualified Data.ByteString.Char8 as B
-import Control.Monad.Error (throwError)
+-- import Control.Monad.Error (throwError)
 import Control.Monad.State.Strict
 import qualified Data.Map as Map
 import Data.IORef
 import Data.Unique
-
+import Control.Monad.Error
 
 import Proc.Params
 
@@ -113,7 +113,7 @@ getOriginName p = getOrigin p >>= readRef >>= \ns -> return $ fixNSName (nsName 
 fixNSName rt t = if rt == nsSep then B.append rt t
                                 else B.concat [rt, nsSep, t]
 
-applyTo !f args = do 
+applyTo !f args =
    -- modify (\x -> let !r = x { tclCmdCount = (tclCmdCount x) + 1 } in r)
    case cmdCore f of
      CmdCore c      -> c args
@@ -150,14 +150,16 @@ toTclCmdObj cs = return (bsn, emptyCmd { cmdName = bsn,
        n = cmdSpecName cs
        v = cmdSpecCmd cs
 
-tclErr :: String -> TclM a
+-- tclErr :: String -> TclM a
+-- tclErr :: String -> Control.Monad.Trans.Error.ErrorT Err m b
 tclErr s = do
   attempt (setErrorInfo s)
-  throwError (eDie s)
+  TclM $ throwError (eDie s)
 
+setErrorInfo :: String -> TclM ()
 setErrorInfo s = do
   glFr <- getGlobalNS >>= getNSFrame
-  varSet (VarName (pack "errorInfo") Nothing) (T.fromStr s) glFr
+  void $ varSet (VarName (pack "errorInfo") Nothing) (T.fromStr s) glFr
 
 
 makeVarMap = Map.fromList . mapSnd (\c -> (Nothing, ScalarVar c))
@@ -181,7 +183,7 @@ registerInterp path interp cmd = inner path
              registerCmd n cmd
        inner path = case path of
           [n] -> regInterp n >> ret
-          (x:xs) -> lookupInterp x >>= \v -> (inner xs) `inInterp` v
+          (x:xs) -> lookupInterp x >>= \v -> inner xs `inInterp` v
           [] -> fail "invalid interpreter path"
   
 lookupInterp n = do
@@ -214,7 +216,7 @@ deleteInterp path = case path of
        ret
  (n:nx) -> do 
    i <- lookupInterp n
-   (deleteInterp nx) `inInterp` i
+   deleteInterp nx `inInterp` i
  _ -> fail "invalid interp path"
 
 interpHide path name = do
@@ -628,6 +630,7 @@ variableNS name val = do
  where
    ensureNotArr v = whenJust v $! \_ -> tclErr $ "can't define " ++ show name ++ ": name refers to value in array"
    varVal = maybe Undefined ScalarVar val
+--    getTag :: (MonadIO m) => IORef TclFrame -> ErrorT Err m Int
    getTag = (`refExtract` frTag)
    sameTags f1 f2 = do
       t1 <- getTag f1
