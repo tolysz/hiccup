@@ -6,7 +6,8 @@ import qualified TclObj as T
 import qualified Data.ByteString.Char8 as B
 import TclParse (parseSubst, Subst(..), SubstArgs, allSubstArgs)
 import TclErr
-import Control.Monad.Error
+-- import Control.Monad.Error
+import Control.Monad.Except
 import RToken
 import qualified Expr as E
 import Util

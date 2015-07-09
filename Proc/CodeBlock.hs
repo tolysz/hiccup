@@ -3,7 +3,7 @@
 module Proc.CodeBlock (toCodeBlock, runCodeBlock, CodeBlock) where
 
 import Control.Monad.State
-import Control.Monad.Error
+import Control.Monad.Except
 import Data.Array.IO
 import qualified Data.Map as M
 import VarName (arrName, NSQual(..), VarName, NSTag)
@@ -11,8 +11,9 @@ import VarName (arrName, NSQual(..), VarName, NSTag)
 import qualified Data.ByteString.Char8 as B
 import Core
 import qualified RToken as R
-import RToken (asParsed,Cmd(..), RTokCmd)
-import Common 
+-- import RToken (asParsed,Cmd(..), RTokCmd)
+import RToken (Cmd(..))
+import Common
 import qualified TclObj as T
 import Util
 
@@ -33,10 +34,10 @@ type CmdIds = M.Map CmdName Int
 data CState = CState Int CmdIds deriving (Show)
 type CErr = String
 
-newtype CompM a = CompM { unCompM :: ErrorT CErr (StateT CState IO) a }
+newtype CompM a = CompM { unCompM :: ExceptT CErr (StateT CState IO) a }
  deriving (MonadState CState, MonadError CErr, MonadIO, Monad, Applicative,Functor)
 
-runCompM code s = runStateT (runErrorT (unCompM code)) s
+runCompM code s = runStateT (runExceptT (unCompM code)) s
 
 toCodeBlock :: T.TclObj -> TclM CodeBlock
 toCodeBlock o = do

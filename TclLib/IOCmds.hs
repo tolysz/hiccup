@@ -2,7 +2,7 @@
 module TclLib.IOCmds (ioCmds, ioInits) where
 import Common
 import Control.Monad (unless, liftM2)
-import Control.Exception (try,catch)
+import Control.Exception (try)
 import System.IO
 import System.Exit
 import System.Directory (getCurrentDirectory,

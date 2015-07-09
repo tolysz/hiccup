@@ -80,7 +80,7 @@ import Control.Monad.State.Strict
 import qualified Data.Map as Map
 import Data.IORef
 import Data.Unique
-import Control.Monad.Error
+import Control.Monad.Except
 
 import Proc.Params
 

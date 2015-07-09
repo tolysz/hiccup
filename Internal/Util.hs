@@ -3,7 +3,7 @@ module Internal.Util where
 
 import Internal.Types
 import qualified TclObj as T
-import Control.Monad.Error
+import Control.Monad.Except
 import Data.IORef
 import Control.Monad.State.Strict
 

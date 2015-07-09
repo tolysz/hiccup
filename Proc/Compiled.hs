@@ -1,5 +1,5 @@
 module Proc.Compiled (compileProc, runCompiled) where
-import Control.Monad.Error
+-- import Control.Monad.Except
 import Proc.Params
 import Proc.CodeBlock
 

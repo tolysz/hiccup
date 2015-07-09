@@ -17,7 +17,7 @@ module TclParse ( TclWord(..)
                  ,allSubstArgs
                  ,tclParseTests
                 )  where
- 
+
 
 import BSParse
 import Util 

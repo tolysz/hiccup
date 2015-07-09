@@ -2,7 +2,7 @@ module TclLib.Interp ( mkInterp, interpEvalStr, interpCmds) where
 
 import Common
 import Util
-import Control.Monad.Error (throwError)
+import Control.Monad.Except (throwError)
 import Data.IORef
 import TclErr
 import Internal.InterpSpec

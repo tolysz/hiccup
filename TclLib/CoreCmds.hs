@@ -2,9 +2,9 @@
 module TclLib.CoreCmds (coreCmds, coreInits) where
 import Common
 import Internal.Types (procArgs)
-import Control.Monad.Error
+import Control.Monad.Except
 import TclLib.LibUtil
-import Control.Monad (liftM)
+-- import Control.Monad (liftM)
 import Data.Char (isDigit)
 import TclErr 
 import VarName (parseProc, NSQual(..), toBStr)

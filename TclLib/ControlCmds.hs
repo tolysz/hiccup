@@ -4,7 +4,7 @@ module TclLib.ControlCmds (controlCmds) where
 import Common
 import Core
 import Match (MatchType(..), matchFun)
-import Control.Monad.Error
+import Control.Monad.Except
 import qualified TclObj as T
 import TclErr
 import Proc.CodeBlock

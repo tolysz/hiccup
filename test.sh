@@ -3,6 +3,6 @@ die() {
   exit 1
 }
 
-ghc -e Tests.runUnit Tests.hs || die "build failure"
-runghc -W Main.hs atests.tcl
+cabal exec -- ghc -e Tests.runUnit Tests.hs || die "build failure"
+cabal exec -- runghc -W Main.hs atests.tcl
 

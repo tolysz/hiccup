@@ -21,7 +21,7 @@ Library
     extensions:          BangPatterns
     exposed-modules: Hiccup, TclObj, Extend
     build-depends:   base, HUnit, time, mtl, parsec, bytestring, readline,
-                     containers, random, unix, array, regex-posix, directory, transformers
+                     containers, random, unix, array, regex-posix, directory
     other-modules:   TObj, VarName, Common, CmdList, Util, Core,
                      Internal.Types, Internal.Util, Internal.InterpSpec, 
                      RToken, BSParse, TclParse, EventMgr, TclChan, TclErr, MathOp, TclLib,
@@ -32,7 +32,7 @@ Library
                      Proc.Params, Proc.Util, Proc.Compiled, Proc.CodeBlock, 
                      Match, Format, ArgParse 
 Executable hiccup
-    ghc-options:         -O2 -funbox-strict-fields -W -fglasgow-exts
+    ghc-options:         -O2 -funbox-strict-fields -W
 --    build-depends:       editline
     main-is:             Main.hs
 

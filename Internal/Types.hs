@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -XGeneralizedNewtypeDeriving #-}
 module Internal.Types where
 
-import Control.Monad.Error
+import Control.Monad.Except
 import Control.Monad.State.Strict
 import qualified Data.Map as Map
 import Data.IORef
@@ -16,8 +16,8 @@ import TclChan
 class Runnable t where
   evalTcl :: t -> TclM T.TclObj
 
-newtype TclM a = TclM { unTclM :: ErrorT Err (StateT TclState IO) a }
- deriving (MonadState TclState, MonadError Err, MonadIO, Applicative, Functor, Monad)
+newtype TclM a = TclM { unTclM :: ExceptT Err (StateT TclState IO) a }
+ deriving (MonadState TclState, MonadIO, Applicative, Functor, Monad, MonadError Err)
 
 data Namespace = TclNS {
          nsName :: BString,
@@ -101,7 +101,7 @@ type TraceCB = Maybe (IO ())
 type VarMap = Map.Map BString (TraceCB,TclVar)
 
 runTclM :: TclM a -> TclState -> IO (Either Err a, TclState)
-runTclM = runStateT . runErrorT . unTclM
+runTclM = runStateT . runExceptT . unTclM
 
 execTclM c e = do 
   (r,s) <- runTclM c e 

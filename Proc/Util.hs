@@ -4,7 +4,7 @@ import Common
 import Proc.Compiled
 import Proc.Params
 import Data.IORef
-import Control.Monad.Error
+import Control.Monad.Except
 import TclErr
 import Util
 import Internal.Types (CmdCore(..))

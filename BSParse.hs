@@ -6,8 +6,8 @@ import qualified Data.ByteString.Unsafe as B
 import Data.ByteString.Internal (w2c)
 import Control.Monad (mplus)
 import Data.Ix
-import Util 
-import Test.HUnit 
+import Util
+import Test.HUnit
 
 type Parser a = BString -> Result a
 type ParseMonad = Either String
@@ -77,7 +77,7 @@ parseLen !i = \s -> if B.length s < i
                      then fail ("can't parse " ++ show i ++ ", not enough")
                      else return $ B.splitAt i s
 {-# INLINE parseLen #-}
-         
+
 parseOneOf !cl = parseCharPred (`elem` cl) ("one of " ++ show cl)
 
 parseNoneOf cl desc = getPred1 (`B.notElem` cl) desc

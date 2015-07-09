@@ -12,7 +12,7 @@ import Control.Monad (liftM)
 import Control.Exception -- (try)
 import Util
 import Match (match, matchTests)
-import qualified System.IO.Error as IOE 
+-- import qualified System.IO.Error as IOE
 import qualified Data.ByteString.Char8 as B
 import qualified TclObj as T
 import Data.Char (toLower,toUpper,isSpace)
