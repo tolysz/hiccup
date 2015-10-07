@@ -3,7 +3,7 @@ version:             0.49
 description:         Interpreter for a subset of tcl
 license:             GPL
 license-file:        LICENSE
-cabal-version:       >= 1.2
+cabal-version:  >=1.10
 author:              Kyle Consalus
 stability:           experimental
 homepage:            http://hiccup.googlecode.com/
@@ -15,23 +15,67 @@ data-files:          README
 extra-source-files:  example.tcl atests.tcl include.tcl
 
 Library
+    default-language: Haskell2010
     ghc-options:         -O2 -funbox-strict-fields -W
     -- -fglasgow-exts
     ghc-prof-options:    -auto-all -prof
     extensions:          BangPatterns
     exposed-modules: Hiccup, TclObj, Extend
-    build-depends:   base, HUnit, time, mtl, parsec, bytestring, readline,
-                     containers, random, unix, array, regex-posix, directory
-    other-modules:   TObj, VarName, Common, CmdList, Util, Core,
-                     Internal.Types, Internal.Util, Internal.InterpSpec, 
-                     RToken, BSParse, TclParse, EventMgr, TclChan, TclErr, MathOp, TclLib,
-                     TclLib.IOCmds, TclLib.StringCmds, TclLib.ListCmds, TclLib.ArrayCmds, TclLib.NSCmds, 
-                     TclLib.LibUtil, TclLib.CoreCmds, TclLib.ControlCmds, TclLib.UtilCmds, 
-                     TclLib.MathProcs, TclLib.Interp,
-                     Expr, Expr.Parse, Expr.Eval, Expr.TExp, Expr.Util, Expr.Compile, 
-                     Proc.Params, Proc.Util, Proc.Compiled, Proc.CodeBlock, 
-                     Match, Format, ArgParse 
+    build-depends: base
+                 , HUnit < 1.3
+                 , time
+                 , mtl
+                 , parsec
+                 , bytestring
+                 , readline
+                 , containers
+                 , random
+                 , unix
+                 , array
+                 , regex-posix
+                 , directory
+    other-modules: TObj
+                 , VarName
+                 , Common
+                 , CmdList
+                 , Util
+                 , Core
+                 , Internal.Types
+                 , Internal.Util
+                 , Internal.InterpSpec
+                 , RToken
+                 , BSParse
+                 , TclParse
+                 , EventMgr
+                 , TclChan
+                 , TclErr
+                 , MathOp
+                 , TclLib
+                 , TclLib.IOCmds
+                 , TclLib.StringCmds
+                 , TclLib.ListCmds
+                 , TclLib.ArrayCmds
+                 , TclLib.NSCmds
+                 , TclLib.LibUtil
+                 , TclLib.CoreCmds
+                 , TclLib.ControlCmds
+                 , TclLib.UtilCmds
+                 , TclLib.MathProcs
+                 , TclLib.Interp
+                 , Expr
+                 , Expr.Parse
+                 , Expr.Eval
+                 , Expr.TExp
+                 , Expr.Util
+                 , Expr.Compile
+                 , Proc.Params
+                 , Proc.Util
+                 , Proc.Compiled
+                 , Proc.CodeBlock
+                 , Match, Format
+                 , ArgParse
 Executable hiccup
+    default-language: Haskell2010
     ghc-options:         -O2 -funbox-strict-fields -W
 --    build-depends:       editline
     main-is:             Main.hs

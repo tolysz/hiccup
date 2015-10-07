@@ -1,8 +1,12 @@
-{-# LANGUAGE BangPatterns,OverloadedStrings #-}
-module Expr.Compile (
-   compileExpr,
-   getUnFun,
-   getOpFun )  where
+{-# LANGUAGE BangPatterns
+           , OverloadedStrings
+  #-}
+
+module Expr.Compile
+  ( compileExpr
+  , getUnFun
+  , getOpFun
+  ) where
 
 import qualified MathOp as Math
 import qualified TObj as T

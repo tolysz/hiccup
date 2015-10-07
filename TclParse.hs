@@ -20,6 +20,10 @@ module TclParse ( TclWord(..)
 
 
 import BSParse
+import Text.Parsec.ByteString
+import Text.ParserCombinators.Parsec.Prim ((<|>))
+import Text.ParserCombinators.Parsec.Combinator
+import Text.Parsec
 import Util 
 import qualified Data.ByteString.Char8 as B
 import Data.Char (digitToInt,isHexDigit)
@@ -27,7 +31,7 @@ import Test.HUnit
 
 
 data TclWord = Word !B.ByteString 
-             | Subcommand SubCmd
+             | Subcommand SubCmd !B.ByteString
              | NoSub !B.ByteString
              | Expand TclWord deriving (Show,Eq)
 
@@ -48,7 +52,7 @@ parseStatement :: Parser [TclWord]
 parseStatement = choose [eatComment, parseTokens]
  where eatComment = parseComment .>> emit []
 
-parseComment = pchar '#' .>> parseMany (ignored </> escapedChar) .>> eatSpaces
+parseComment = pchar '#' .>> parseMany (ignored <|> escapedChar) .>> eatSpaces
  where ignored = parseNoneOf "\n\\" "not newline or slash"
 
 parseTokens :: Parser [TclWord]
@@ -56,26 +60,26 @@ parseTokens = eatSpaces .>> parseToken `sepBy1` spaceSep
  where spaceSep = getPred1 (\x -> x == ' ' || x == '\t') "spaces"
 
 parseToken :: Parser TclWord
-parseToken str = do 
-   h <- safeHead "token" str
+parseToken = do
+   h <- string "token"
    case h of
-     '{'  -> (parseExpand </> parseNoSub) str
-     '"'  -> (parseRichStr `wrapWith` Word) str
-     '\\' -> handleEsc str
-     _    -> (wordToken `wrapWith` Word) str
+     '{'  -> (parseExpand <|> parseNoSub)
+     '"'  -> (parseRichStr `wrapWith` Word)
+     '\\' -> handleEsc
+     _    -> (wordToken `wrapWith` Word)
  where parseNoSub = parseBlock `wrapWith` NoSub
        parseExpand = parseLit "{*}" .>> (parseToken `wrapWith` Expand)
 
 parseRichStr = quotes (inside `wrapWith` B.concat)
  where noquotes = parseNoneOf "\"\\[$" "non-quote chars"
        inside = parseMany $ choose [noquotes, escapedChar, consumed parseSub, inner_var]
-       inner_var = consumed (parseVar </> pchar '$')
+       inner_var = consumed (parseVar <|> pchar '$')
 
 parseSub :: Parser SubCmd
 parseSub = brackets parseStatements
 
 handleEsc :: Parser TclWord
-handleEsc = line_continue </> esc_word
+handleEsc = line_continue <|> esc_word
  where line_continue = parseLit "\\\n" .>> eatSpaces .>> parseToken
        esc_word = (chain [escapedChar, tryGet wordToken]) `wrapWith` Word
 
@@ -93,12 +97,12 @@ parseVarBody = chain [ initial
  where getNS = chain [sep, varTerm, tryGet getNS]
        initial = chain [tryGet sep, varTerm]
        sep = parseLit "::"
-       varTerm = (getPred1 wordChar "word") </> braceVar
+       varTerm = (getPred1 wordChar "word") <|> braceVar
        parseInd = chain [pchar '(', getPred (/= ')'), pchar ')']
 
-wordToken = consumed (parseMany1 (someVar </> inner </> someCmd))
+wordToken = consumed (parseMany1 (someVar <|> inner <|> someCmd))
  where simple = parseNoneOf " $[]\n\t;\\" "inner word"
-       inner = consumed (parseMany1 (simple </> escapedChar)) 
+       inner = consumed (parseMany1 (simple <|> escapedChar))
        someVar = consumed parseVar
        someCmd = consumed parseSub
 
@@ -110,7 +114,7 @@ parseList_ = trimmed listItems
  where listItems = listElt `sepBy` whiteSpace
 
 listElt :: Parser BString
-listElt = parseBlock </> parseStr </> getListItem
+listElt = parseBlock <|> parseStr <|> getListItem
 
 getListItem s = if B.null w then fail "can't parse list item" else return (w,n)
  where (w,n) = B.splitAt (listItemEnd s) s
@@ -124,7 +128,7 @@ listItemEnd s = inner 0 False where
                                   v  -> if isTerminal v then i else inner (i+1) False
 
 parseInt :: Parser Int
-parseInt = (checkStartsWith '0' .>> (parseHex </> parseDecInt)) </> parseDecInt
+parseInt = (checkStartsWith '0' .>> (parseHex <|> parseDecInt)) <|> parseDecInt
 parseHex = hex_str `wrapWith` h2d
  where hex_str = parseLit "0x" .>> getPred1 isHexDigit "hex digit"
        h2d = B.foldl' (\a c -> a * 16 + (digitToInt c)) 0 
@@ -168,6 +172,7 @@ escapeChar c = case c of
           'a' -> '\a'
           _  -> c
 
+{-
 tclParseTests = TestList [ runParseTests, 
                            parseVarBodyTests,
                            parseListTests,
@@ -310,3 +315,4 @@ parseSubstTests = "parseSubst" ~: TestList [
        all_on = ma (True,True,True)
        no_esc = ma (True,False,True)
        no_var = ma (False,True,True)
+-}

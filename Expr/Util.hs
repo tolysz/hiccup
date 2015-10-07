@@ -3,16 +3,16 @@ module Expr.Util where
 import Expr.TExp
 -- import Expr.Parse
 
-tInt i = Item (ANum (TInt i))
+tInt   i = Item (ANum (TInt i))
 tFloat f = Item (ANum (TDouble f))
-tStr s = Item (AStr s)
+tStr   s = Item (AStr s)
 
 (.&&) = BinApp OpAnd
 (.||) = BinApp OpOr
 
-(.<) = BinApp OpLt
+(.<)  = BinApp OpLt
 (.<=) = BinApp OpLte
-(.>) = BinApp OpGt
+(.>)  = BinApp OpGt
 (.>=) = BinApp OpGte
 (.==) = BinApp OpEql
 

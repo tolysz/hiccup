@@ -1,77 +1,78 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts #-}
-module Common (TclM
-       ,TclState
-       ,Runnable(..)
-       ,applyTo
-       ,registerWatcher
-       ,procBody
-       ,getOriginName
-       ,runTclM
-       ,makeState
-       ,setErrorInfo
-       ,runInterp
-       ,registerInterp
-       ,getInterp
-       ,getInterpNames
-       ,deleteInterp
-       ,interpHide
-       ,runCheckResult
-       ,withProcScope
-       ,withNS
-       ,getCmd
-       ,getFrameInfo
-       ,getProcInfo
-       ,getCmdNS
-       ,getCurrNS
-       ,registerEnsem
-       ,registerProc
-       ,registerCmd
-       ,varGetNS
-       ,varSetNS
-       ,varSetHere
-       ,varExists
-       ,varUnsetNS
-       ,varTraceNS
-       ,renameCmd
-       ,getArray
-       ,addChan
-       ,removeChan
-       ,getChan
-       ,namesChan
-       ,evtAdd
-       ,evtGetDue
-       ,evtInfo
-       ,evtCancel
-       ,evtNextDeadline
-       ,uplevel
-       ,upvar
-       ,io
-       ,tclErr
-       ,ret
-       ,argErr
-       ,stackLevel
-       ,getCmdCount
-       ,globalVars
-       ,localVars
-       ,commandNames
-       ,currentVars
-       ,currentNS
-       ,parentNS
-       ,existsNS
-       ,deleteNS
-       ,childrenNS
-       ,variableNS
-       ,getUnknownNS
-       ,setUnknownNS
-       ,exportNS
-       ,getExportsNS
-       ,getExportCmds
-       ,importNS
-       ,forgetNS
-       ,addToPathNS
-       ,getPathNS
-       ,commonTests
-    ) where
+module Common
+  ( TclM
+  , TclState
+  , Runnable(..)
+  , applyTo
+  , registerWatcher
+  , procBody
+  , getOriginName
+  , runTclM
+  , makeState
+  , setErrorInfo
+  , runInterp
+  , registerInterp
+  , getInterp
+  , getInterpNames
+  , deleteInterp
+  , interpHide
+  , runCheckResult
+  , withProcScope
+  , withNS
+  , getCmd
+  , getFrameInfo
+  , getProcInfo
+  , getCmdNS
+  , getCurrNS
+  , registerEnsem
+  , registerProc
+  , registerCmd
+  , varGetNS
+  , varSetNS
+  , varSetHere
+  , varExists
+  , varUnsetNS
+  , varTraceNS
+  , renameCmd
+  , getArray
+  , addChan
+  , removeChan
+  , getChan
+  , namesChan
+  , evtAdd
+  , evtGetDue
+  , evtInfo
+  , evtCancel
+  , evtNextDeadline
+  , uplevel
+  , upvar
+  , io
+  , tclErr
+  , ret
+  , argErr
+  , stackLevel
+  , getCmdCount
+  , globalVars
+  , localVars
+  , commandNames
+  , currentVars
+  , currentNS
+  , parentNS
+  , existsNS
+  , deleteNS
+  , childrenNS
+  , variableNS
+  , getUnknownNS
+  , setUnknownNS
+  , exportNS
+  , getExportsNS
+  , getExportCmds
+  , importNS
+  , forgetNS
+  , addToPathNS
+  , getPathNS
+  , commonTests
+  ) where
 
 
 import qualified Data.ByteString.Char8 as B
@@ -247,15 +248,17 @@ makeState is = do
     hiddens <- cmdListToCmdMap (ispecHidden is)
     st <- return $! mkState nsr hiddens fr
     runInits st
- where mkState nsr hiddens fr = TclState { interpSafe = ispecSafe is,
-                                   tclChans = ispecChans is,
-                                   tclInterps = Map.empty,
-                                   tclEvents = Evt.emptyMgr,
-                                   tclHidden = hiddens,
-                                   tclStack = [fr],
-                                   tclGlobalNS = nsr,
-                                   tclCmdCount = 0,
-                                   tclCmdWatchers = [] }
+ where mkState nsr hiddens fr = TclState
+    { interpSafe = ispecSafe is
+    , tclChans = ispecChans is
+    , tclInterps = Map.empty
+    , tclEvents = Evt.emptyMgr
+    , tclHidden = hiddens
+    , tclStack = [fr]
+    , tclGlobalNS = nsr
+    , tclCmdCount = 0
+    , tclCmdWatchers = []
+    }
        makeGlobal = do 
            fr <- createFrame (makeVarMap (ispecVars is)) 
            nsr <- globalNS fr

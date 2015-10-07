@@ -1,20 +1,23 @@
-module CmdList ( CmdSpec(..) 
-                ,CmdList(..)
-                ,mergeCmdLists
-                ,makeCmdList
-                ,safeCmds
-                ,unsafeCmds
-                ,nsCmdList
-                ,makeNsCmdList
-                ,onlySafe
-                ,onlyUnsafe
-                ,emptyCmdList
-                ) where
+module CmdList
+  ( CmdSpec(..)
+  , CmdList(..)
+  , mergeCmdLists
+  , makeCmdList
+  , safeCmds
+  , unsafeCmds
+  , nsCmdList
+  , makeNsCmdList
+  , onlySafe
+  , onlyUnsafe
+  , emptyCmdList
+  ) where
 import Internal.Types (TclCmd)
 
-data CmdSpec = CmdSpec { cmdSpecName :: String, 
-                         cmdSpecCmd :: TclCmd, 
-                         cmdSpecSafe :: Bool }
+data CmdSpec = CmdSpec
+  { cmdSpecName :: String
+  , cmdSpecCmd :: TclCmd
+  , cmdSpecSafe :: Bool
+  }
 
 data CmdList = CmdList { unCmdList :: [CmdSpec] }
 

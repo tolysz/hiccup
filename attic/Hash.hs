@@ -20,7 +20,7 @@ instance Hashable B.ByteString where
     hashVal = mainhash
 
 sumhash :: B.ByteString -> Int
-sumhash = B.foldl' (\a b -> a + (fromIntegral (ord b))) 0
+sumhash = B.foldl' (\a b -> a + fromIntegral (ord b)) 0
 
 perlhash :: B.ByteString -> Int
 perlhash !s = let v0 = B.foldl' pcombine 0 s
@@ -30,11 +30,11 @@ perlhash !s = let v0 = B.foldl' pcombine 0 s
 {-# INLINE perlhash #-}
 
 mainhash :: B.ByteString -> Int
-mainhash !s = B.foldl' (\i c -> ((i `shiftL` 5) + i) `xor` (ord c)) 5381 s
+mainhash !s = B.foldl' (\i c -> ((i `shiftL` 5) + i) `xor` ord c) 5381 s
 {-# INLINE mainhash #-}
 
 pcombine :: Int -> Char -> Int
-pcombine !val !c = let v1 = val + (fromIntegral (ord c))
+pcombine !val !c = let v1 = val + fromIntegral (ord c)
                        v2 = v1 + v1 `shiftL` 10
                    in  v2 `xor` (v2 `shiftR` 6)
 {-# INLINE pcombine #-}
@@ -48,15 +48,15 @@ newHT size = do
   return (HT size arr)
 
 blahHT :: Int -> IO (HT B.ByteString Int)
-blahHT size = newHT size
+blahHT = newHT
 
 htInsert k v (HT size arr) = do
-   let ind = (hashVal k) `mod` size
+   let ind = hashVal k `mod` size
    olde <- readArray arr ind
    writeArray arr ind ((k,v):olde)
 
 htLookup k (HT size arr) = do
-   let ind = (hashVal k) `mod` size
+   let ind = hashVal k `mod` size
    eltl <- readArray arr ind
    return (lookup k eltl)
 

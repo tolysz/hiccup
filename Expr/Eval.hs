@@ -11,8 +11,11 @@ import qualified Data.Map as M
 import Expr.Util
 import Test.HUnit
 
-data CBData = VarRef (NSQual VarName) | FunRef (BString, [T.TclObj]) 
-            | CmdEval [Cmd] | TokEval RTokCmd
+data CBData
+  = VarRef (NSQual VarName)
+  | FunRef (BString, [T.TclObj])
+  | CmdEval [Cmd]
+  | TokEval RTokCmd
 
 type Callback m = (CBData -> m T.TclObj)
 
@@ -20,7 +23,7 @@ type Callback m = (CBData -> m T.TclObj)
 type CExprT = CExpr [Cmd] RTokCmd
 
 runCExpr :: (Monad m) => Callback m -> CExprT -> m T.TclObj
-runCExpr lu exp = run exp
+runCExpr lu = run
  where run e = case e of
                  CItem v -> getItem v
                  CStrTok t -> lu (TokEval t)
@@ -51,7 +54,7 @@ getItem item = case item of
 
 
 runExpr :: (Monad m) => Callback m -> Expr -> m T.TclObj
-runExpr lu exp = run exp
+runExpr lu = run
  where run e = case e of
                 Item v        -> getItem v
                 DepItem v     -> getDep v

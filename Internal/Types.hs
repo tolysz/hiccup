@@ -19,56 +19,59 @@ class Runnable t where
 newtype TclM a = TclM { unTclM :: ExceptT Err (StateT TclState IO) a }
  deriving (MonadState TclState, MonadIO, Applicative, Functor, Monad, MonadError Err)
 
-data Namespace = TclNS {
-         nsName :: BString,
-         nsCmds :: !CmdMap,
-         nsFrame :: !FrameRef,
-         nsExport :: [BString],
-         nsParent :: Maybe NSRef,
-         nsChildren :: Map.Map BString NSRef,
-         nsPath :: [NSRef],
-         nsPathLinks :: [NSRef],
-         nsUnknown :: Maybe BString
-         } 
+data Namespace = TclNS
+  { nsName      ::  BString
+  , nsCmds      :: !CmdMap
+  , nsFrame     :: !FrameRef
+  , nsExport    :: [BString]
+  , nsParent    ::  Maybe NSRef
+  , nsChildren  ::  Map.Map BString NSRef
+  , nsPath      :: [NSRef]
+  , nsPathLinks :: [NSRef]
+  , nsUnknown   ::  Maybe BString
+  }
 
 
 type FrameRef = IORef TclFrame
 type NSRef = IORef Namespace
 type UpMap = Map.Map BString (FrameRef,BString)
 
-data TclFrame = TclFrame { 
-      frVars :: !VarMap, 
-      upMap :: !UpMap,
-      frNS :: NSRef,
-      frTag :: !Int,
-      frInfo :: [T.TclObj] }
+data TclFrame = TclFrame
+  { frVars :: !VarMap
+  , upMap :: !UpMap
+  , frNS :: NSRef
+  , frTag :: !Int
+  , frInfo :: [T.TclObj]
+  }
 
 type TclStack = [FrameRef]
 
 data Interp = Interp { interpState :: IORef TclState }
 type InterpMap = Map.Map BString Interp
 
-data TclState = TclState { 
-    interpSafe :: Bool,
-    tclChans :: ChanMap, 
-    tclInterps :: InterpMap,
-    tclEvents :: Evt.EventMgr T.TclObj,
-    tclStack :: !TclStack, 
-    tclHidden :: CmdMap,
-    tclGlobalNS :: !NSRef,
-    tclCmdCount :: !Int,
-    tclCmdWatchers :: [IO ()] }
+data TclState = TclState
+  { interpSafe     :: Bool
+  , tclChans       :: ChanMap
+  , tclInterps     :: InterpMap
+  , tclEvents      :: Evt.EventMgr T.TclObj
+  , tclStack       :: !TclStack
+  , tclHidden      :: CmdMap
+  , tclGlobalNS    :: !NSRef
+  , tclCmdCount    :: !Int
+  , tclCmdWatchers :: [IO ()]
+  }
 
 type TclCmd = [T.TclObj] -> TclM T.TclObj
 
 type CmdRef = IORef TclCmdObj
 
-data TclCmdObj = TclCmdObj { 
-                   cmdName :: BString, 
-                   cmdOrigNS :: Maybe NSRef,
-                   cmdParent :: Maybe CmdRef,
-                   cmdKids :: [CmdRef],
-                   cmdCore :: !CmdCore }
+data TclCmdObj = TclCmdObj
+  { cmdName   :: BString
+  , cmdOrigNS :: Maybe NSRef
+  , cmdParent :: Maybe CmdRef
+  , cmdKids   :: [CmdRef]
+  , cmdCore   :: !CmdCore
+  }
 
 cmdIsProc cmd = case cmdCore cmd of
                   ProcCore {} -> True
@@ -82,21 +85,29 @@ type ArgSpec = Either BString (BString,T.TclObj)
 type ArgList = [ArgSpec]
 newtype ParamList = ParamList (BString, Bool, ArgList)
 
-data CmdCore = CmdCore !TclCmd 
-             | EnsemCore { ensemName :: BString,
-                           ensemCmd :: TclCmd }
-             | ProcCore { procBody :: BString, 
-                          procArgs :: !ParamList,
-                          procAction :: !(TclM T.TclObj) }
+data CmdCore
+  = CmdCore !TclCmd
+  | EnsemCore { ensemName :: BString
+              , ensemCmd :: TclCmd
+              }
+  | ProcCore { procBody :: BString
+             , procArgs :: !ParamList
+             , procAction :: !(TclM T.TclObj)
+             }
 
 type ProcKey = BString
-data CmdMap = CmdMap { 
-      cmdMapEpoch :: !Int,
-      unCmdMap :: !(Map.Map ProcKey CmdRef) 
+data CmdMap = CmdMap
+  { cmdMapEpoch :: !Int
+  , unCmdMap :: !(Map.Map ProcKey CmdRef)
   } 
 
 type TclArray = Map.Map BString T.TclObj
-data TclVar = ScalarVar !T.TclObj | ArrayVar TclArray | Undefined deriving (Eq,Show)
+data TclVar
+  = ScalarVar !T.TclObj
+  | ArrayVar  TclArray
+  | Undefined
+    deriving (Eq,Show)
+
 type TraceCB = Maybe (IO ())
 type VarMap = Map.Map BString (TraceCB,TclVar)
 

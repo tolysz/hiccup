@@ -1,8 +1,8 @@
 
-data Accessor t a = Accessor { 
-        getVal :: t -> a,
-        setVal :: t -> a -> t
-    }
+data Accessor t a = Accessor
+  { getVal :: t -> a
+  , setVal :: t -> a -> t
+  }
 
 
 data Foo = Foo { p1score_ :: Bar, p2score_ :: Int } deriving Show

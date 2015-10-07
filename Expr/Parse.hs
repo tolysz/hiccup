@@ -140,7 +140,7 @@ parseOp = eatSpaces .>> choose plist
        op2parser (OpDef s o _) = sop s o
        plist = map op2parser (reverse (sortBy (comparing (B.length . opName)) operators))
 
-
+{-
 bsExprTests = "BSExpr" ~: TestList [atomTests, numTests, intTests, itemTests, depTests, ternIfTests, exprTests] where
   int i = Item (ANum (TInt i))
   dub d = Item (ANum (TDouble d))
@@ -213,3 +213,4 @@ bsExprTests = "BSExpr" ~: TestList [atomTests, numTests, intTests, itemTests, de
     ] where should_be dat res = Right (res,"") ~=? parseDecInt dat
             should_fail dat () = (parseDecInt dat) `should_fail_` ()
 
+-}
