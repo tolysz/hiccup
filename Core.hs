@@ -7,7 +7,8 @@ import Common
 import qualified TclObj as T
 import qualified Data.ByteString.Char8 as B
 import TclParse (parseSubst, Subst(..), SubstArgs, allSubstArgs)
-import BSParse (runParser, eof, eatSpaces)
+import BSParse (runParser)
+-- , eof, eatSpaces)
 import TclErr
 -- import Control.Monad.Error
 import Control.Monad.Except
@@ -16,7 +17,7 @@ import qualified Expr as E
 import Util
 import VarName (arrName, NSQual(..), parseNSTag, toBStr, parseVarName, VarName(..))
 
-import Test.HUnit
+-- import Test.HUnit
 
 instance Runnable T.TclObj where
   evalTcl s = asParsed s >>= runCmds

@@ -77,6 +77,19 @@ Library
 Executable hiccup
     default-language: Haskell2010
     ghc-options:         -O2 -funbox-strict-fields -W
---    build-depends:       editline
+    build-depends: base
+                 , readline
+                 , hiccup
+                 , bytestring
+                 , containers
+                 , HUnit < 1.3
+                 , parsec
+                 , regex-posix
+                 , mtl
+                 , unix
+                 , time
+                 , array
+                 , directory
+                 , random
     main-is:             Main.hs
 
