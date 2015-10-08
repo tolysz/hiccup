@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns,OverloadedStrings #-}
+{-# LANGUAGE BangPatterns, OverloadedStrings #-}
 module Util (BString, joinWith, joinWithBS, pack, unpack, bsNull,
              dropSpaces, mapFst, mapSnd, listEscape,
              ifFails, commaList,

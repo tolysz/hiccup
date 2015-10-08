@@ -4,10 +4,9 @@ module Format (formatString) where
 import qualified Data.ByteString.Char8 as B
 import qualified TclObj as T
 import Data.Char (chr)
-import BSParse (pchar,(.>>),choose,emit,wrapWith,parseMany,parseLit
+import BSParse (pchar,choose,wrapWith,parseMany,parseLit
                 ,getPred1
-                ,(</>)
-                ,pass
+                ,pass, runParser, eof, (<|>)
                 ,parseDecInt)
 
 data Format = FInt | FStr | FChar deriving Show
@@ -18,10 +17,9 @@ getFormat f v = case f of
     FChar -> T.asInt v >>= return . B.singleton . chr
 
 
-formatString str xl = case parseFormatStr str of
-                   Right (fl,r) -> if B.null r then construct fl xl [] >>= return . B.concat
-                                               else fail "invalid format string"
-                   Left e       -> fail e
+formatString str xl = case runParser (parseFormatStr <* eof) () "formatString" str of
+                   Right fl -> construct fl xl [] >>= return . B.concat
+                   Left e   -> fail (show e)
 
 construct [] [] acc = return $ reverse acc
 construct [] _ _ = fail "extra arguments to format"
@@ -37,12 +35,12 @@ pad n s = if plen > 0 then B.append (B.replicate plen ' ') s
 
 parseFormatStr = parseMany $ choose [normal `wrapWith` Left, 
                                      parseFormat `wrapWith` Right, 
-                                     (parseLit "%%" .>> emit "%") `wrapWith` Left]
+                                     (parseLit "%%" >> return "%") `wrapWith` Left]
   where normal = getPred1 (/= '%') "non-format"
 
-parseFormat = pchar '%' .>> choose [fstr,fchar,fint]
+parseFormat = pchar '%' >> choose [fstr,fchar,fint]
  where mk (c,v) = (padding `pass` pchar c) `wrapWith` (\p -> (p,v))
        fchar = mk ('c',FChar)
        fstr = mk ('s', FStr)
        fint = mk ('d',FInt)
-       padding = parseDecInt </> emit 0
+       padding = parseDecInt <|> return 0

@@ -1,10 +1,13 @@
 {-# LANGUAGE BangPatterns,OverloadedStrings, FlexibleContexts #-}
-module Core (doCond, evalExpr, evalArgs, subst, coreTests) where
+module Core (doCond, evalExpr, evalArgs, subst
+-- , coreTests
+) where
 
 import Common
 import qualified TclObj as T
 import qualified Data.ByteString.Char8 as B
 import TclParse (parseSubst, Subst(..), SubstArgs, allSubstArgs)
+import BSParse (runParser, eof, eatSpaces)
 import TclErr
 -- import Control.Monad.Error
 import Control.Monad.Except
@@ -96,7 +99,7 @@ mathfuncTag = Just (parseNSTag "::tcl::mathfunc")
 
 subst :: SubstArgs -> BString -> TclM BString
 subst sargs str = do 
-   lst <- elift $ parseSubst sargs str
+   lst <- elift (parseSubst sargs) str
    getSubsts lst >>= return . B.concat
  where 
     endIfErr f ef = f `catchError` (\e -> if toEnum (errCode e) == ef then return [] else throwError e)
@@ -105,9 +108,9 @@ subst sargs str = do
       where good = do fx <- f x
                       fxs <- getSubsts xs
                       return (fx:fxs)
-    elift x = case x of
-               Left e -> tclErr e
-               Right (v,_) -> return v
+    elift x s = case runParser x () "subst" s of
+               Left e -> tclErr (show e)
+               Right v -> return v
     handleCmdErrs f = f `catchError` handler
       where handler e = case toEnum (errCode e) of
                                 EReturn -> return (errData e)
@@ -123,5 +126,5 @@ subst sargs str = do
                     vn                               -> varGetNS vn
            return (T.asBStr val)
 
-coreTests = TestList []
+-- coreTests = TestList []
 

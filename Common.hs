@@ -248,17 +248,17 @@ makeState is = do
     hiddens <- cmdListToCmdMap (ispecHidden is)
     st <- return $! mkState nsr hiddens fr
     runInits st
- where mkState nsr hiddens fr = TclState
-    { interpSafe = ispecSafe is
-    , tclChans = ispecChans is
-    , tclInterps = Map.empty
-    , tclEvents = Evt.emptyMgr
-    , tclHidden = hiddens
-    , tclStack = [fr]
-    , tclGlobalNS = nsr
-    , tclCmdCount = 0
-    , tclCmdWatchers = []
-    }
+ where mkState nsr hiddens fr
+         = TclState { interpSafe     = ispecSafe is
+            , tclChans       = ispecChans is
+            , tclInterps     = Map.empty
+            , tclEvents      = Evt.emptyMgr
+            , tclHidden      = hiddens
+            , tclStack       = [fr]
+            , tclGlobalNS    = nsr
+            , tclCmdCount    = 0
+            , tclCmdWatchers = []
+            }
        makeGlobal = do 
            fr <- createFrame (makeVarMap (ispecVars is)) 
            nsr <- globalNS fr
@@ -880,7 +880,7 @@ commonTests = TestList [ setTests, getTests, unsetTests, withScopeTests ] where
                          Left e -> error (show e)
                          Right _ -> do vm <- readVars vmr
                                        assertBool "getVM" (c vm)
-                        
+
 
   getTests = TestList [
        "non-exist" ~: (varGetRaw (b "boo")) `checkErr` "can't read \"boo\": no such variable"

@@ -5,7 +5,8 @@ module Expr.Parse (
        ,parseFullExpr
        ,parseExpr
        ,exprToLisp
-       ,bsExprTests) where
+--        ,bsExprTests
+       ) where
 
 import BSParse
 import TclParse
@@ -13,26 +14,27 @@ import VarName
 import Data.List (sortBy)
 import Data.Ord (comparing)
 import Data.Char (isDigit)
+import Data.Maybe
 import Util
 import qualified Data.ByteString.Char8 as B
 import qualified Data.Map as M
 import Expr.TExp
-import Test.HUnit 
+-- import Test.HUnit
 
 
 parseNum :: Parser TNum
-parseNum = (parseHex `wrapWith` TInt) </> parseDec </> parseDoub 0
-parseDec s = do
-   (i,r) <- parseDecInt $ s
-   (parseDoub i) </> (emit (TInt i)) $ r
+parseNum = (parseHex `wrapWith` TInt) <|> parseDec <|> parseDoub 0
+parseDec = do
+   i<- parseDecInt
+   parseDoub i <|> return (TInt i)
 
-parseDoub i = dubpart </> exppart
+parseDoub i = dubpart <|> exppart
  where dubpart = dtail `wrapWith` (\v -> TDouble (fromIntegral i + (read ('0':v))))
-       dtail = (consumed (pchar '.' .>> digits)) `wrapWith` B.unpack
+       dtail = (consumed (pchar '.' >> digits)) `wrapWith` B.unpack
        digits = getPred1 isDigit "digit"
        exppart = parseExp `wrapWith` (\e -> TDouble ((fromIntegral i) * (10 ** (fromIntegral e))))
 
-parseExp = pchar 'e' .>> parseDecInt
+parseExp = pchar 'e' >> parseDecInt
 
 operators = mkops [ 
                    [("||",OpOr), ("&&",OpAnd)]
@@ -52,9 +54,7 @@ operators = mkops [
 higherPrec op1 op2 = getPrec op1 >= getPrec op2
  where getPrec = opPrec . getOp
 
-getOp op = case M.lookup op opsByOper of
-            Just v -> v
-            Nothing -> error "wtf"
+getOp op = fromMaybe (error "wtf") $ M.lookup op opsByOper
 
 getOpName = B.unpack . opName . getOp
 opsByOper = M.fromList (map pairer operators)
@@ -62,7 +62,6 @@ opsByOper = M.fromList (map pairer operators)
 
 
 data OpDef = OpDef { opName :: BString, opCode :: Op, opPrec :: Int }
-
 
 showExpr exp = case exp of
          Item (ANum (TInt i)) -> show i
@@ -78,12 +77,12 @@ showExpr exp = case exp of
          BinApp op a b -> showOpExpr (getOpName op) a b
  where showOpExpr ops a b = "(" ++ ops ++ " " ++ showExpr a ++ " " ++ showExpr b ++ ")"
 
-exprToLisp s = case parseExpr (B.pack s) of
-                Left r -> r
-                Right (a,_) -> showExpr a
+exprToLisp s = case runParser parseExpr () "" (B.pack s) of
+                Left r -> show r
+                Right a -> showExpr a
 
 parseDep = choose [var,cmd,fun]
- where dep f w = (eatSpaces .>> f) `wrapWith` w
+ where dep f w = (eatSpaces >> f) `wrapWith` w
        var = dep parseVar (DVar . parseVarName)
        cmd = dep parseSub DCom
        fun = dep (pjoin DFun fname funArgs) id
@@ -91,38 +90,39 @@ parseDep = choose [var,cmd,fun]
        funArgs = paren (commaSep parseExpr)
 
 parseAtom = choose [str,num,block,bool]
- where  atom f w = (eatSpaces .>> f) `wrapWith` w
+ where  atom f w = (eatSpaces >> f) `wrapWith` w
         str = atom parseRichStr AStr
         block = atom parseBlock ABlock
         num = atom parseNum ANum
         bool = atom parseBool (ANum . TInt)
 
-parseBool = (["true","on"] `thenEmit` 1) </> (["false", "off"] `thenEmit` 0)
-  where thenEmit slst v = choose (map parseLit slst) .>> emit v
-        
-parseUnOp = notop </> negop
-  where negop = pchar '-' .>> emit OpNeg
-        notop = pchar '!' .>> emit OpNot
+parseBool = (["true","on"] `thenEmit` 1) <|> (["false", "off"] `thenEmit` 0)
+  where thenEmit slst v = choose (map parseLit slst) >> return v
 
-parseItem = parseAtom `wrapWith` Item
-             </> (parseDep `wrapWith` DepItem)
-             </> ((paren parseExpr) `wrapWith` Paren) 
-             </> (pjoin UnApp parseUnOp parseItem)
+parseUnOp = notop <|> negop
+  where negop = pchar '-' >> return OpNeg
+        notop = pchar '!' >> return OpNot
 
-parseFullExpr = parseExpr `pass` (eatSpaces .>> parseEof)
+parseItem
+          = Item    <$> parseAtom
+        <|> DepItem <$> parseDep
+        <|> Paren   <$> paren parseExpr
+        <|> UnApp   <$> parseUnOp <*> parseItem
+
+parseFullExpr = parseExpr `pass` (eatSpaces >> parseEof)
 
 
-parseExpr = eatSpaces .>> expTerm
- where expTerm str = do
-         (i1,r) <- parseItem str
-         binop i1 </> tern i1 </> emit i1 $ r 
-       binop a = pjoin (\op i2 -> fixApp a op i2) parseOp parseExpr
+parseExpr = eatSpaces >> expTerm
+ where expTerm = do
+         i1 <- parseItem
+         binop i1 <|> tern i1 <|> return i1
+       binop a = fixApp a <$> parseOp <*> parseExpr
        tern a = parseTernIf `wrapWith` (\(b,c) -> TernIf a b c)
 
-pchar_ c = eatSpaces .>> pchar c
+pchar_ c = eatSpaces >> pchar c
 
 pair_with = pjoin (,)
-parseTernIf = pchar_ '?' .>> parseExpr `pair_with` (pchar_ ':' .>> parseExpr)
+parseTernIf = pchar_ '?' >> parseExpr `pair_with` (pchar_ ':' >> parseExpr)
 
 fixApp a@(BinApp op2 a2 b2) op b =  
       if op `higherPrec` op2 then BinApp op2 a2 (BinApp op b2 b)
@@ -135,8 +135,8 @@ fixApp a op b = BinApp op a b
 
 paren = between (pchar '(') (pchar_ ')')
 
-parseOp = eatSpaces .>> choose plist
- where sop s v = parseLit s .>> emit v
+parseOp = eatSpaces >> choose plist
+ where sop s v = parseLit s >> return v
        op2parser (OpDef s o _) = sop s o
        plist = map op2parser (reverse (sortBy (comparing (B.length . opName)) operators))
 

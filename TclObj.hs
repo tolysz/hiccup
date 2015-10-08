@@ -29,6 +29,7 @@ module TclObj (
  ,tclObjTests ) where
 
 import TclParse (parseList, parseInt)
+import BSParse (runParser, eof, eatSpaces)
 import qualified Data.ByteString.Char8 as BS
 import Control.Monad
 import RToken (asParsed, singleTok, Parseable, Cmd, makeParsed, RTokCmd,
@@ -60,11 +61,10 @@ fromBList l = TclList (S.fromList (map fromBStr l)) (list2Str l)
 fromBlock s p = TclBStr s (maybeInt s) p
 {-# INLINE fromBlock #-}
 
-
-maybeInt s = case parseInt (dropSpaces s) of
-                Left _     -> Nothing
-                Right (i,r) -> if BS.null r || BS.null (dropSpaces r) then Just i else Nothing
-
+maybeInt :: BString -> Maybe Int
+maybeInt s = case runParser (eatSpaces *> parseInt <* (eatSpaces >> eof)) () "maybeInt"  s of
+         Left _  -> Nothing
+         Right i -> Just i
 
 mkTclInt !i = TclInt i bsval
  where bsval = pack (show i)
@@ -94,8 +94,8 @@ bstrAsInt bs = case maybeInt bs of
 
 badInt bi = fail ("expected integer but got " ++ show bi)
 
-bstrAsSeq s = case parseList s of
-                    Left r  -> fail $ "list parse failure: " ++ r
+bstrAsSeq s = case runParser parseList () "bstrAsSeq" s of
+                    Left r  -> fail $ "list parse failure: " ++ show r
                     Right lst -> return (S.fromList lst)
 {-
 instance ITObj BS.ByteString where
@@ -133,10 +133,10 @@ instance ITObj TclObj where
   {-# INLINE asInt #-}
 
   asDouble (TclDouble d _) = return $! d
-  asDouble (TclInt i _) = return $! (fromIntegral i)
-  asDouble obj = do
+  asDouble (TclInt i _) = return $! fromIntegral i
+  asDouble obj =
       case asInt obj of 
-        Just i  -> return $! (fromIntegral i)
+        Just i  -> return $! fromIntegral i
         Nothing -> let strval = asStr obj 
                    in case reads strval of
                      [(d,"")] -> return $! d -- TODO: not quite right.

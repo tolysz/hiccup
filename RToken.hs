@@ -3,16 +3,19 @@ module RToken (Cmd(..), CmdName(..), RToken(..), singleTok, Parseable, Parsed,
   RTokCmd,
   ParseResult,
   makeParsed,
-  asParsed, rtokenTests ) where
+  asParsed
+--   , rtokenTests
+  ) where
 
 import qualified Data.ByteString.Char8 as B
-import TclParse (TclWord(..), runParse, parseSubstAll, Subst(..),  SubCmd)
-import Util (BString,pack)
+import TclParse (TclWord(..), runParse, parseSubstAll, Subst(..), SubCmd)
+import BSParse (runParser, eof, Parser)
+import Util (BString)
 import VarName
 import Expr.Parse
 import Expr.TExp (CExpr)
 import Expr.Compile
-import Test.HUnit
+-- import Test.HUnit
 
 type Parsed = [Cmd]
 type TokResult = Either String Parsed
@@ -20,19 +23,30 @@ type ExprResult = Either String (CExpr [Cmd] RTokCmd)
 type ParseResult = (TokResult,ExprResult)
 
 data Cmd = Cmd CmdName [RTokCmd] deriving (Eq,Show)
-data CmdName = BasicCmd (NSQual BString) | DynCmd RTokCmd deriving (Eq,Show)
+data CmdName
+  = BasicCmd (NSQual BString)
+  | DynCmd RTokCmd
+     deriving (Eq,Show)
+
 type RTokCmd = RToken [Cmd]
-data RToken a = Lit !BString | LitInt !Int | CatLst [RToken a] 
-              | CmdTok !a | ExpTok (RToken a)
-              | VarRef !(NSQual VarName) | ArrRef !(Maybe NSTag) !BString (RToken a)
-              | Block !BString !ParseResult deriving (Eq,Show)
+
+data RToken a
+  = Lit !BString
+  | LitInt !Int
+  | CatLst [RToken a]
+  | CmdTok !a
+  | ExpTok (RToken a)
+  | VarRef !(NSQual VarName)
+  | ArrRef !(Maybe NSTag) !BString (RToken a)
+  | Block !BString !ParseResult
+    deriving (Eq,Show)
 
 compToken :: TclWord -> RTokCmd
 compToken tw = case tw of
           Word s        -> compile s
           NoSub s       -> Block s (makeParsed s)
           Expand t      -> ExpTok (compToken t)
-          Subcommand c  -> compCmds c
+          Subcommand c _ -> compCmds c
 
 makeParsed s = (tryParsed s, makeCExpr s)
 {-# INLINE makeParsed #-}
@@ -40,7 +54,7 @@ makeParsed s = (tryParsed s, makeCExpr s)
 compCmds c = CmdTok (subCmdToCmds c)
 
 compile :: BString -> RTokCmd
-compile str = clean . tconcat . map toTok . elift . parseSubstAll $ str
+compile str = clean . tconcat . map toTok $ elift parseSubstAll str
  where clean [r] = r 
        clean rl  = CatLst rl
        tconcat (Lit a:Lit b:xs) = tconcat (Lit (B.append a b):xs)
@@ -53,9 +67,10 @@ compile str = clean . tconcat . map toTok . elift . parseSubstAll $ str
                       NSQual ns (VarName n (Just ind)) -> ArrRef ns n (compile ind)
                       vn                               -> VarRef vn
 
-elift x = case x of
-            Left e -> error e
-            Right (v,_) -> v
+elift :: Parser x -> BString -> x
+elift x str = case runParser x () "compile" str of
+            Left e -> error $ show e
+            Right v -> v
 
 
 -- Bit hacky, but better than no literal handling
@@ -88,19 +103,20 @@ toCmd (x,xs) = let (a:as) = map compToken (x:xs)
         handleProc xx      = DynCmd xx
 
 tryParsed :: BString -> TokResult
-tryParsed m = case runParse m of 
-   Left w     -> Left $ "parse failed: " ++ w
-   Right (r,rs) -> if B.null rs then Right (subCmdToCmds r) 
-                                else Left ("incomplete parse: " ++ show rs)
+tryParsed m = case runParser (runParse <* eof) () "tryParsed" m of
+   Left w  -> Left $ "parse failed: " ++ show w
+   Right r -> Right (subCmdToCmds r)
+--                                 else Left ("incomplete parse: " ++ show rs)
 
-makeCExpr m = case parseFullExpr m of 
-   Left w     -> Left $ "expr parse failed: " ++ w
-   Right (r,rs) -> if B.null rs then Right (compileExpr subCmdToCmds compile r) 
-                                else Left ("incomplete expr parse: " ++ show rs)
+makeCExpr m = case runParser (parseFullExpr <* eof) () "makeCExpr" m of
+   Left w   -> Left $ "expr parse failed: " ++ show w
+   Right r  -> Right (compileExpr subCmdToCmds compile r)
+--                                 else Left ("incomplete expr parse: " ++ show rs)
 
 
 singleTok b = subCmdToCmds [(Word b,[])]
 
+{-
 rtokenTests = TestList [compTests, compTokenTests] where
   compTests = "compile" ~: TestList [ 
       "x -> x" ~: "x" `compiles_to` (lit "x")  
@@ -130,3 +146,4 @@ rtokenTests = TestList [compTests, compTokenTests] where
                   assertEqual (show a ++ " compiles to " ++ show b) b r
   compiles_to a b = do let r = compile (pack a)
                        assertEqual (show a ++ " compiles to " ++ show b) b r
+-}

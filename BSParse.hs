@@ -1,18 +1,56 @@
 {-# LANGUAGE BangPatterns,OverloadedStrings #-}
-module BSParse where
+module BSParse
+ ( consumed
+ , tryGet
+ , getPred
+ , getPred1
+ , wrapWith
+ , parseLit
+ , parseMany
+ , parseMany1
+ , parseOneOf
+ , parseNoneOf
+ , parseStr
+ , parseLen
+ , parseBlock
+ , parseCharPred
+ , chain
+ , choose
+ , pass
+ , parseEof
+ , safeHead
+ , eatSpaces
+ , quotes
+ , brackets
+ , commaSep
+ , pjoin
+ , braceVar
+ , checkStartsWith
+ , parseAny
+ , wordChar
+ , bchar
+ , pchar
+ , parseDecInt
+ , escapedChar
+ , escapedCharBString
+ , module Text.Parsec
+ , module Text.Parsec.ByteString
+)where
 
 import qualified Data.ByteString.Char8 as B
-import qualified Data.ByteString.Unsafe as B
-import Data.ByteString.Internal (w2c)
-import Control.Monad (mplus)
+-- import qualified Data.ByteString.Unsafe as B
+-- import Data.ByteString.Internal (w2c)
+import Control.Monad
+-- (mplus)
 import Data.Ix
 import Util
-import Test.HUnit
-import Text.Parsec.ByteString
+-- import Test.HUnit
 import Text.Parsec
-import Text.ParserCombinators.Parsec.Char
-import Text.ParserCombinators.Parsec.Combinator
-import Text.ParserCombinators.Parsec.Prim ((<|>))
+import Text.Parsec.ByteString
+-- import Text.ParserCombinators.Parsec.Char
+-- import Text.ParserCombinators.Parsec.Combinator
+-- import Text.ParserCombinators.Parsec.Prim ((<|>))
+-- import Control.Monad
 -- import qualified Text.Parsec.Token as P
 -- import Text.Parsec.Language (haskellDef)
 -- lexer       = P.makeTokenParser haskellDef
@@ -31,12 +69,19 @@ emit :: a -> Parser a
 emit = return
 {-# INLINE emit #-}
 
--- consumed :: Parser t -> Parser BString
--- consumed p = do
---     (_,r) <- lookAhead p
+consumed :: Parser t -> Parser BString
+consumed p = do
+   s <- getInput
+   st <- getParserState
+   void p
+   r <- getInput
+   let lendiff = B.length s - B.length r
+   setParserState st
+   return $ B.take lendiff s
+
 --     let lendiff = B.length s - B.length r
 --     return (B.take lendiff s, r)
--- {-# INLINE consumed #-}
+{-# INLINE consumed #-}
 
 
 -- (</>) :: Parser t -> Parser t -> Parser t
@@ -44,16 +89,19 @@ emit = return
 -- {-# INLINE (</>) #-}
 
 tryGet fn = fn <|> return ""
-     
--- chain_ lst = consumed (foldr (.>>) (emit ()) lst)
+
+-- chain_ lst = consumed (sequence_ lst)
 
 -- chain :: [Parser BString] -> Parser BString
 -- chain lst = (foldr pcons (emit []) lst) `wrapWith` B.concat
+
+chain :: Monoid a =>  [Parser a] -> Parser a
+chain = fmap mconcat . sequence
 -- chain =
 {-# INLINE chain #-}
 
-choose = foldr1 (<|>)
-{-# INLINE choose #-}
+choose = choice
+-- {-# INLINE choose #-}
 
 pjoin :: (t1 -> t2 -> t3) -> Parser t1 -> Parser t2 -> Parser t3
 pjoin op a b = op <$> a <*> b
@@ -63,10 +111,12 @@ pjoin op a b = op <$> a <*> b
 --        return ((op w w2), r2)
 {-# INLINE pjoin #-}
 
-pass = pjoin (\a _ -> a)
+pass = const
+-- pjoin (\a _ -> a)
 {-# INLINE pass #-}
 
-(.>>) = pjoin (\_ b -> b)
+(.>>) = (>>)
+--  pjoin (\_ b -> b)
 {-# INLINE (.>>) #-}
 
 pcons :: Parser t -> Parser [t] -> Parser [t]
@@ -104,25 +154,40 @@ pchar :: Char -> Parser Char
 pchar = char -- parseCharPred (== c) (show c)
 {-# INLINE pchar #-}
 
+bchar c = B.singleton <$> pchar c
+
 parseAny = anyChar
 -- parseCharPred (const True) "any char"
-parseCharPred pred desc s = case B.uncons s of
-                            Nothing    -> failStr "eof"
-                            Just (h,t) -> if pred h then return $! (B.singleton h,t)
-                                                    else failStr (show h)
+parseCharPred pred desc= do
+  s <- getInput
+  case B.uncons s of
+     Nothing    -> failStr "eof"
+     Just (h,t) -> if pred h then setInput t >> return h
+                             else failStr (show h)
  where failStr what = fail $ "expected " ++ desc ++ ", got " ++ what
 {-# INLINE parseCharPred #-}
 
 
-wrapWith fn wr s = fn s >>= \(!w,r) -> return (wr w, r) 
+-- wrapWith fn wr s = fn s >>= \(!w,r) -> return (wr w, r)
+wrapWith fn wr = wr <$> fn
 {-# INLINE wrapWith #-}
 
-getPred p s = return $! (w,n)
- where (w,n) = B.span p s
+getPred :: (Char -> Bool) -> Parser BString
+getPred p = do
+   s <- getInput
+   let (w,n) = B.span p s
+   setInput n
+   return $! w
+
+-- return $! (w,n)
+--  where (w,n) = B.span p s
 
 -- TODO: slightly inaccuate error messages
-getPred1 pred desc s = if B.null w then fail ("wanted " ++ desc ++ ", got eof") else return $! (w,n)
- where (w,n) = B.span pred s
+getPred1 :: (Char -> Bool) -> String -> Parser BString
+getPred1 pred desc = do
+  w <- getPred pred
+  if B.null w then fail ("wanted " ++ desc ++ ", but fail to get it") else return w
+--  where (w,n) = B.span pred s
 {-# INLINE getPred1 #-}
 
 
@@ -144,12 +209,13 @@ checkStartsWith :: Char -> Parser ()
 checkStartsWith !c = do
   h <- lookAhead anyChar
 --   h <- safeHead (show c) s
-  if h == c then return () -- emit () s
-            else fail $ "expected " ++ show c ++ ", got " ++ show h
+  unless (h == c) $ fail $ "expected " ++ show c ++ ", got " ++ show h
 {-# INLINE checkStartsWith #-}
-  
--- safeHead r s = if B.null s then fail ("expected " ++ r ++ ", got eof") else return (w2c . B.unsafeHead $ s)
--- {-# INLINE safeHead #-}
+
+safeHead :: String -> Parser Char
+safeHead r = lookAhead anyChar <?> ("expected " ++ r ++ ", got eof")
+--   if B.null s then fail ("expected " ++ r ++ ", got eof") else return (w2c . B.unsafeHead $ s)
+{-# INLINE safeHead #-}
 
 -- between l r p = (l .>> p) `pass` r
 -- {-# INLINE between #-}
@@ -157,9 +223,11 @@ checkStartsWith !c = do
 brackets = between (pchar '[') (eatSpaces .>> pchar ']')
 quotes = between (pchar '"') (pchar '"')
 
+wordChar :: Char -> Bool
 wordChar !c = c /= ' ' && (inRange ('a','z') c || inRange ('A','Z') c || inRange ('0','9') c || c == '_')
 
-braceVar = between (pchar '{') (pchar '}') inner
+braceVar :: Parser BString
+braceVar = B.pack <$> between (pchar '{') (pchar '}') inner
  where inner = many $ choose [nobraces, escapedChar]
        nobraces = noneOf "}\\" -- "not } or \\"
 
@@ -180,25 +248,34 @@ parseDecInt = read <$> many1 digit
 escapedChar :: Parser Char
 escapedChar = char '\\' >> parseAny
 
+escapedCharBString :: Parser BString
+escapedCharBString = B.singleton <$> escapedChar
+
+
 parseBlock :: Parser BString
 parseBlock = B.pack <$> between (pchar '{') (pchar '}') nest_filling
  where inner = choose [(:[]) <$> nobraces, (:[]) <$>  escapedChar, braces]
        nest_filling :: Parser String
        nest_filling = concat <$> parseMany inner
-       braces = concat <$> chain [(:[]) <$> pchar '{', nest_filling, (:[]) <$> pchar '}']
+       braces = chain [(:[]) <$> pchar '{', nest_filling, (:[]) <$> pchar '}']
        nobraces = noneOf "{}\\" -- <?> "non-brace chars"
 {-# INLINE parseBlock #-}
 
-chain :: [Parser a] -> Parser [a]
-chain = sequence
 
-
+-- parseBlock :: Parser BString
+-- parseBlock = B.pack <$> between (pchar '{') (pchar '}') nest_filling
+--  where inner = choose [(:[]) <$> nobraces, (:[]) <$>  escapedChar, braces]
+--        nest_filling :: Parser String
+--        nest_filling = concat <$> parseMany inner
+--        braces = concat <$> chain [(:[]) <$> pchar '{', nest_filling, (:[]) <$> pchar '}']
+--        nobraces = noneOf "{}\\" -- <?> "non-brace chars"
+-- {-# INLINE parseBlock #-}
 -- # TESTS # --
 
-should_fail_ act _ = let res = case act of 
-                                 Left _ -> True
-                                 _      -> False
-                     in TestCase $ assertBool "should fail" res
+-- should_fail_ act _ = let res = case act of
+--                                  Left _ -> True
+--                                  _      -> False
+--                      in TestCase $ assertBool "should fail" res
 {--
 parseStrTests = "parseStr" ~: TestList [
       "Escaped works" ~: ("Oh \\\"yeah\\\" baby.", "") ?=? "\"Oh \\\"yeah\\\" baby.\"",

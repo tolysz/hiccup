@@ -15,73 +15,73 @@ module TclParse ( TclWord(..)
                  ,Subst(..)
                  ,SubstArgs(..)
                  ,allSubstArgs
-                 ,tclParseTests
+--                  ,tclParseTests
                 )  where
 
 
 import BSParse
-import Text.Parsec.ByteString
-import Text.ParserCombinators.Parsec.Prim ((<|>))
-import Text.ParserCombinators.Parsec.Combinator
-import Text.Parsec
+-- import Text.Parsec.ByteString
+-- import Text.ParserCombinators.Parsec.Prim ((<|>))
+-- import Text.ParserCombinators.Parsec.Combinator
+-- import Text.Parsec
 import Util 
 import qualified Data.ByteString.Char8 as B
 import Data.Char (digitToInt,isHexDigit)
-import Test.HUnit
+-- import Test.HUnit
 
 
-data TclWord = Word !B.ByteString 
-             | Subcommand SubCmd !B.ByteString
-             | NoSub !B.ByteString
+data TclWord = Word !BString
+             | Subcommand SubCmd !BString
+             | NoSub !BString
              | Expand TclWord deriving (Show,Eq)
 
 type TokCmd = (TclWord, [TclWord])
 type SubCmd = [TokCmd]
 
 runParse :: Parser SubCmd
-runParse = parseStatements `pass` parseEof 
+runParse = parseStatements <* eof
 
 asCmds lst = [(c,a) | (c:a) <- lst]
 
 parseStatements :: Parser SubCmd
 parseStatements = trimmed $ ((parseStatement `sepBy` stmtSep) `pass` trailing) `wrapWith` asCmds
- where stmtSep = parseMany1 (eatSpaces .>> parseOneOf ("\n;" :: [Char]) .>> eatSpaces)
+ where stmtSep = parseMany1 (eatSpaces >> parseOneOf ("\n;" :: [Char]) >> eatSpaces)
        trailing = parseMany stmtSep
 
 parseStatement :: Parser [TclWord]
 parseStatement = choose [eatComment, parseTokens]
- where eatComment = parseComment .>> emit []
+ where eatComment = parseComment >> return []
 
-parseComment = pchar '#' .>> parseMany (ignored <|> escapedChar) .>> eatSpaces
+parseComment = pchar '#' >> parseMany (ignored <|> escapedCharBString) >> eatSpaces
  where ignored = parseNoneOf "\n\\" "not newline or slash"
 
 parseTokens :: Parser [TclWord]
-parseTokens = eatSpaces .>> parseToken `sepBy1` spaceSep
+parseTokens = eatSpaces >> parseToken `sepBy1` spaceSep
  where spaceSep = getPred1 (\x -> x == ' ' || x == '\t') "spaces"
 
 parseToken :: Parser TclWord
 parseToken = do
-   h <- string "token"
+   h <- safeHead "token"
    case h of
-     '{'  -> (parseExpand <|> parseNoSub)
-     '"'  -> (parseRichStr `wrapWith` Word)
+     '{'  -> parseExpand <|> parseNoSub
+     '"'  -> parseRichStr `wrapWith` Word
      '\\' -> handleEsc
-     _    -> (wordToken `wrapWith` Word)
- where parseNoSub = parseBlock `wrapWith` NoSub
-       parseExpand = parseLit "{*}" .>> (parseToken `wrapWith` Expand)
+     _    -> wordToken `wrapWith` Word
+ where parseNoSub = NoSub <$> parseBlock
+       parseExpand = parseLit "{*}" >> Expand <$> parseToken
 
 parseRichStr = quotes (inside `wrapWith` B.concat)
  where noquotes = parseNoneOf "\"\\[$" "non-quote chars"
-       inside = parseMany $ choose [noquotes, escapedChar, consumed parseSub, inner_var]
-       inner_var = consumed (parseVar <|> pchar '$')
+       inside = parseMany $ choose [noquotes, escapedCharBString, consumed parseSub, inner_var]
+       inner_var = consumed (parseVar <|> bchar '$')
 
 parseSub :: Parser SubCmd
 parseSub = brackets parseStatements
 
 handleEsc :: Parser TclWord
 handleEsc = line_continue <|> esc_word
- where line_continue = parseLit "\\\n" .>> eatSpaces .>> parseToken
-       esc_word = (chain [escapedChar, tryGet wordToken]) `wrapWith` Word
+ where line_continue = parseLit "\\\n" >> eatSpaces >> parseToken
+       esc_word = chain [escapedCharBString, tryGet wordToken] `wrapWith` Word
 
 trimmed = between tryWhite tryWhite
  where tryWhite = tryGet whiteSpace
@@ -89,7 +89,7 @@ trimmed = between tryWhite tryWhite
 whiteSpace = getPred1 (`B.elem` " \t\n") "whitespace"
 
 parseVar :: Parser BString
-parseVar = pchar '$' .>> parseVarBody
+parseVar = pchar '$' >> parseVarBody
 
 parseVarBody = chain [ initial 
                       ,tryGet getNS
@@ -97,18 +97,19 @@ parseVarBody = chain [ initial
  where getNS = chain [sep, varTerm, tryGet getNS]
        initial = chain [tryGet sep, varTerm]
        sep = parseLit "::"
-       varTerm = (getPred1 wordChar "word") <|> braceVar
-       parseInd = chain [pchar '(', getPred (/= ')'), pchar ')']
+       varTerm = getPred1 wordChar "word" <|> braceVar
+       parseInd = chain [bchar '(', getPred (/= ')'), bchar ')']
 
 wordToken = consumed (parseMany1 (someVar <|> inner <|> someCmd))
  where simple = parseNoneOf " $[]\n\t;\\" "inner word"
-       inner = consumed (parseMany1 (simple <|> escapedChar))
+       inner = consumed (parseMany1 (simple <|> escapedCharBString))
        someVar = consumed parseVar
        someCmd = consumed parseSub
 
-ensureEof p s = (p `pass` parseEof) s >>= return . fst
+ensureEof p = p <* eof
 
 parseList = ensureEof parseList_
+
 parseList_ :: Parser [BString]
 parseList_ = trimmed listItems
  where listItems = listElt `sepBy` whiteSpace
@@ -116,8 +117,12 @@ parseList_ = trimmed listItems
 listElt :: Parser BString
 listElt = parseBlock <|> parseStr <|> getListItem
 
-getListItem s = if B.null w then fail "can't parse list item" else return (w,n)
- where (w,n) = B.splitAt (listItemEnd s) s
+getListItem = do
+  s <- getInput
+  let (w,n) = B.splitAt (listItemEnd s) s
+  if B.null w
+   then fail "can't parse list item"
+   else setInput n >> return w
 
 listItemEnd s = inner 0 False where 
    isTerminal = (`B.elem` "{}\" \t\n")
@@ -128,9 +133,9 @@ listItemEnd s = inner 0 False where
                                   v  -> if isTerminal v then i else inner (i+1) False
 
 parseInt :: Parser Int
-parseInt = (checkStartsWith '0' .>> (parseHex <|> parseDecInt)) <|> parseDecInt
+parseInt = (checkStartsWith '0' >> (parseHex <|> parseDecInt)) <|> parseDecInt
 parseHex = hex_str `wrapWith` h2d
- where hex_str = parseLit "0x" .>> getPred1 isHexDigit "hex digit"
+ where hex_str = parseLit "0x" >> getPred1 isHexDigit "hex digit"
        h2d = B.foldl' (\a c -> a * 16 + (digitToInt c)) 0 
 
 data Subst = SStr !BString | SVar !BString | SCmd SubCmd 
@@ -148,11 +153,12 @@ parseSubst (SubstArgs vars esc cmds) = inner `wrapWith` sconcat
                                   may vars SVar parseVar,
                                   may cmds SCmd parseSub,
                                   tryEsc,
-                                  st parseAny])
+                                  st1 parseAny])
        st x = x `wrapWith` SStr
+       st1 x = x `wrapWith` (SStr . B.singleton)
        may b c f = if b then f `wrapWith` c else st (consumed f)
-       tryEsc = if esc then (escChar `wrapWith` SStr) else (\_ -> fail "no esc") 
-       escChar = pchar '\\' .>> (parseAny `wrapWith` (escCharStr . B.head))
+       tryEsc = if esc then (SStr <$> escChar) else fail "no esc"
+       escChar = pchar '\\' >> escCharStr <$> parseAny
        sconcat [] = []
        sconcat (SStr s:xs) = let (sl,r) = spanStrs xs []
                              in SStr (B.concat (s:sl)) : sconcat r 
@@ -166,6 +172,7 @@ parseSubst (SubstArgs vars esc cmds) = inner `wrapWith` sconcat
 
 escCharStr = B.singleton . escapeChar
 {-# INLINE escapeChar #-}
+
 escapeChar c = case c of
           'n' -> '\n'
           't' -> '\t'
