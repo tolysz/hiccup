@@ -139,8 +139,8 @@ listElt = try parseBlock <|> try parseStr <|> getListItem
 
 getListItem = do
   s <- getInput
-  let (w,n) = B.splitAt (listItemEnd s) s
-  if B.null w
+  let w = B.take (listItemEnd s) s
+  if w == 0
    then fail "can't parse list item"
    else count (B.length w) anyChar *> return w
 

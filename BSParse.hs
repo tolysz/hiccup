@@ -281,7 +281,7 @@ parseStr = B.pack <$> quotes ( concat <$> inside)
        inside = many ((:[]) <$> try noquotes <|> escapedChar)
 
 parseDecInt :: Parser Int 
-parseDecInt = read <$> many1 digit
+parseDecInt = read <$> ((:) <$> (char '-' <|> return ' ') <*> many1 digit)
 -- P.integer lexer
 -- case B.readInt s of
 --                  Just x -> return x

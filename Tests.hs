@@ -16,10 +16,21 @@ import Hiccup (hiccupTests)
 import ArgParse (argParseTests)
 import Test.HUnit 
 
-allTests = TestList [ bsParseTests, tclParseTests, utilTests, tclObjTests, commonTests, 
-                      coreTests, rtokenTests, stringTests, mathTests, varNameTests, exprTests,
-                      argParseTests, hiccupTests
-                      ]
+allTests = TestList
+  [ bsParseTests
+  , tclParseTests
+  , utilTests
+  , tclObjTests
+  , commonTests
+  , coreTests
+  , rtokenTests
+  , stringTests
+  , mathTests
+  , varNameTests
+  , exprTests
+  , argParseTests
+  , hiccupTests
+  ]
 runUnit = runTestTT allTests
 
 main = runUnit
