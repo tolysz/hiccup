@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns,OverloadedStrings, FlexibleContexts #-}
 module Core (doCond, evalExpr, evalArgs, subst
--- , coreTests
+, coreTests
 ) where
 
 import Common
@@ -17,7 +17,7 @@ import qualified Expr as E
 import Util
 import VarName (arrName, NSQual(..), parseNSTag, toBStr, parseVarName, VarName(..))
 
--- import Test.HUnit
+import Test.HUnit
 
 instance Runnable T.TclObj where
   evalTcl s = asParsed s >>= runCmds
@@ -51,7 +51,7 @@ evalRTokens (x:xs) acc = case x of
             ExpTok t -> do 
                  [rs] <- evalArgs [t]
                  l <- T.asList rs
-                 evalRTokens xs ((reverse l) ++ acc)
+                 evalRTokens xs (reverse l ++ acc)
    where next !r = evalRTokens xs (r:acc)
          {-# INLINE next #-}
 
@@ -73,12 +73,12 @@ runCmd (Cmd n args) = do
              let name = T.asBStr o
              getCmd name >>= doCall name rs 
 
-doCall pn args !mproc = do
+doCall pn args !mproc =
    case mproc of
      Nothing   -> do ukproc <- getUnknownNS >>= maybe (return Nothing) getCmd
                      case ukproc of
                        Nothing -> tclErr $ "invalid command name " ++ show pn
-                       Just uk -> uk `applyTo` ((T.fromBStr pn):args)
+                       Just uk -> uk `applyTo` (T.fromBStr pn :args)
      Just proc -> proc `applyTo` args 
 {-# INLINE doCall #-}
 
@@ -127,5 +127,5 @@ subst sargs str = do
                     vn                               -> varGetNS vn
            return (T.asBStr val)
 
--- coreTests = TestList []
+coreTests = TestList []
 

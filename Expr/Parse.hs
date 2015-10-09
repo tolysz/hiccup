@@ -1,12 +1,12 @@
 {-# LANGUAGE BangPatterns,OverloadedStrings #-}
-module Expr.Parse (
-       Atom(..)
-       ,Expr(..)
-       ,parseFullExpr
-       ,parseExpr
-       ,exprToLisp
---        ,bsExprTests
-       ) where
+module Expr.Parse
+ ( Atom(..)
+ , Expr(..)
+ , parseFullExpr
+ , parseExpr
+ , exprToLisp
+ , bsExprTests
+ ) where
 
 import BSParse
 import TclParse
@@ -19,7 +19,7 @@ import Util
 import qualified Data.ByteString.Char8 as B
 import qualified Data.Map as M
 import Expr.TExp
--- import Test.HUnit
+import Test.HUnit
 
 
 parseNum :: Parser TNum
@@ -30,7 +30,7 @@ parseDec = do
 
 parseDoub i = dubpart <|> exppart
  where dubpart = dtail `wrapWith` (\v -> TDouble (fromIntegral i + (read ('0':v))))
-       dtail = (consumed (pchar '.' >> digits)) `wrapWith` B.unpack
+       dtail = consumed (bchar '.' >> digits) `wrapWith` B.unpack
        digits = getPred1 isDigit "digit"
        exppart = parseExp `wrapWith` (\e -> TDouble ((fromIntegral i) * (10 ** (fromIntegral e))))
 
@@ -140,7 +140,7 @@ parseOp = eatSpaces >> choose plist
        op2parser (OpDef s o _) = sop s o
        plist = map op2parser (reverse (sortBy (comparing (B.length . opName)) operators))
 
-{-
+
 bsExprTests = "BSExpr" ~: TestList [atomTests, numTests, intTests, itemTests, depTests, ternIfTests, exprTests] where
   int i = Item (ANum (TInt i))
   dub d = Item (ANum (TDouble d))
@@ -148,7 +148,7 @@ bsExprTests = "BSExpr" ~: TestList [atomTests, numTests, intTests, itemTests, de
   blo s = Item (ABlock s)
   app2 a op b = BinApp op a b
   app1 op a = UnApp op a
-  should_be_ p dat res = (B.unpack dat) ~: Right (res, "") ~=? p dat
+  should_be_ p dat res = (B.unpack dat) ~: Right (res, "") ~=? runParser1  p dat
   atomTests = TestList [
      "11" `should_be` (ANum (TInt 11))
      ,"true" `should_be` (ANum (TInt 1))
@@ -177,7 +177,7 @@ bsExprTests = "BSExpr" ~: TestList [atomTests, numTests, intTests, itemTests, de
      " 1 ? 3 : 4" `should_be` (int 1, int 3, int 4)
      ,"1?3:4" `should_be` (int 1, int 3, int 4)
      ,"true? 3 + 4 : 2 * 4" `should_be` (int 1, app2 (int 3) OpPlus (int 4), app2 (int 2) OpTimes (int 4))
-   ] where should_be dat (a,b,c) = (B.unpack dat) ~: Right ((a,(b,c)), "") ~=? (parseItem `pair_with` parseTernIf) dat
+   ] where should_be dat (a,b,c) = (B.unpack dat) ~: Right ((a,(b,c)), "") ~=? runParser1 (parseItem `pair_with` parseTernIf) dat
 
   exprTests = TestList [
      "11" `should_be` (int 11)
@@ -193,7 +193,7 @@ bsExprTests = "BSExpr" ~: TestList [atomTests, numTests, intTests, itemTests, de
      ,"4 in { 1 4 8 }" `should_be` (app2 (int 4) OpIn (blo " 1 4 8 "))
      ," 1 ? 55 : 44" `should_be` (TernIf (int 1) (int 55) (int 44))
      ," 3 > 4 ? {yes} : {no}" `should_be` (TernIf (app2 (int 3) OpGt (int 4)) (blo "yes") (blo "no"))
-   ] where should_be dat res = (B.unpack dat) ~: Right (res, "") ~=? parseExpr dat
+   ] where should_be dat res = (B.unpack dat) ~: Right (res, "") ~=? runParser1 parseExpr dat
 
   numTests = TestList [
       "44" `should_be` TInt 44
@@ -203,14 +203,14 @@ bsExprTests = "BSExpr" ~: TestList [atomTests, numTests, intTests, itemTests, de
       ,".83" `should_be` TDouble 0.83
       ,"1e3" `should_be` TDouble 1000.0
       ,"0xb.44" `should_fail` ()
-   ] where should_be dat res = Right (res,"") ~=? parseNum dat
-           should_fail dat () = ((parseNum `pass` parseEof) dat) `should_fail_` ()
+   ] where should_be dat res = Right (res,"") ~=? runParser1 parseNum dat
+           should_fail dat () = (runParser1 (parseNum `pass` parseEof) dat) `should_fail_` ()
 
   intTests = TestList [
        "44" `should_be` 44
        ,"9" `should_be` 9
        ,"catfish" `should_fail` ()
-    ] where should_be dat res = Right (res,"") ~=? parseDecInt dat
-            should_fail dat () = (parseDecInt dat) `should_fail_` ()
+    ] where should_be dat res = Right (res,"") ~=? runParser1 parseDecInt dat
+            should_fail dat () = (runParser1 parseDecInt dat) `should_fail_` ()
 
--}
+

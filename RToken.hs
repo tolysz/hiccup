@@ -1,10 +1,16 @@
-module RToken (Cmd(..), CmdName(..), RToken(..), singleTok, Parseable, Parsed, 
-  subCmdToCmds,
-  RTokCmd,
-  ParseResult,
-  makeParsed,
-  asParsed
---   , rtokenTests
+module RToken
+  ( Cmd(..)
+  , CmdName(..)
+  , RToken(..)
+  , singleTok
+  , Parseable
+  , Parsed
+  , subCmdToCmds
+  , RTokCmd
+  , ParseResult
+  , makeParsed
+  , asParsed
+  , rtokenTests
   ) where
 
 import qualified Data.ByteString.Char8 as B
@@ -15,7 +21,7 @@ import VarName
 import Expr.Parse
 import Expr.TExp (CExpr)
 import Expr.Compile
--- import Test.HUnit
+import Test.HUnit
 
 type Parsed = [Cmd]
 type TokResult = Either String Parsed
@@ -116,7 +122,7 @@ makeCExpr m = case runParser (parseFullExpr <* eof) () "makeCExpr" m of
 
 singleTok b = subCmdToCmds [(Word b,[])]
 
-{-
+
 rtokenTests = TestList [compTests, compTokenTests] where
   compTests = "compile" ~: TestList [ 
       "x -> x" ~: "x" `compiles_to` (lit "x")  
@@ -133,17 +139,17 @@ rtokenTests = TestList [compTests, compTokenTests] where
       ,"2" ~: (mknosub "puts 4") `tok_to` (block "puts 4" [Cmd (BasicCmd (vlocal "puts")) [ilit 4]])
     ]
   
-  block s v = let bs = pack s in Block (pack s) (Right v, makeCExpr bs)
-  mknosub s = NoSub (pack s)
-  mkwd = Word . pack
-  lit = Lit . pack 
+  block s v = let bs = B.pack s in Block (B.pack s) (Right v, makeCExpr bs)
+  mknosub s = NoSub (B.pack s)
+  mkwd = Word . B.pack
+  lit = Lit . B.pack
   ilit = LitInt 
-  vlocal x = NSQual Nothing (pack x)
+  vlocal x = NSQual Nothing (B.pack x)
   cmdTok (n,a) = CmdTok [(Cmd n a)]
-  varref = VarRef . parseVarName . pack 
-  arrref s t = ArrRef Nothing (pack s) t
+  varref = VarRef . parseVarName . B.pack
+  arrref s t = ArrRef Nothing (B.pack s) t
   tok_to a b = do let r = compToken a
                   assertEqual (show a ++ " compiles to " ++ show b) b r
-  compiles_to a b = do let r = compile (pack a)
+  compiles_to a b = do let r = compile (B.pack a)
                        assertEqual (show a ++ " compiles to " ++ show b) b r
--}
+

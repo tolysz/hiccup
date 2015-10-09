@@ -96,6 +96,7 @@ exprEvalTests = TestList [evalTests, varEvalTests] where
            tclTrue = T.fromBool True
     
     var v = DepItem (DVar (parseVarName v))
+
     varEvalTests = TestList [
         "$num -> 4" ~: (var "num") `eql` (mint 4),
         ((var "num") + (tInt 3)) `eql` (mint 7),

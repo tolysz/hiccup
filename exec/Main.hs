@@ -23,11 +23,12 @@ main = do args <- getArgs
                       case mline of
                         Nothing -> print "bam" >> return ()
                         Just "" -> runRepl i
-                        Just ln -> do addHistory ln 
+                        Just ln -> do addHistory ln
+--                                       putStrLn ln
                                       v <- interpEvalStr (B.pack ln) i
+--                                       print v
                                       v `unlessErr` (\o -> unless (B.null o) (B.putStrLn o))
                                       runRepl i
-
 
 -- Example extension functions
 procs = [tcl_sum, tcl_fib]

@@ -91,5 +91,6 @@ Executable hiccup
                  , array
                  , directory
                  , random
-    main-is:             Main.hs
+    main-is:     Main.hs
+    hs-source-dir: exec
 
