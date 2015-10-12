@@ -109,12 +109,12 @@ toCmd (x,xs) = let (a:as) = map compToken (x:xs)
         handleProc xx      = DynCmd xx
 
 tryParsed :: BString -> TokResult
-tryParsed m = case runParser (runParse <* eof) () "tryParsed" m of
+tryParsed m = case runParser runParse () "" m of
    Left w  -> Left $ "parse failed: " ++ show w
    Right r -> Right (subCmdToCmds r)
 --                                 else Left ("incomplete parse: " ++ show rs)
 
-makeCExpr m = case runParser (parseFullExpr <* eof) () "makeCExpr" m of
+makeCExpr m = case runParser (parseFullExpr ) () "makeCExpr" m of
    Left w   -> Left $ "expr parse failed: " ++ show w
    Right r  -> Right (compileExpr subCmdToCmds compile r)
 --                                 else Left ("incomplete expr parse: " ++ show rs)

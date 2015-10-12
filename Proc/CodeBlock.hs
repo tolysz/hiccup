@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -XGeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE BangPatterns,OverloadedStrings, FlexibleContexts #-}
 module Proc.CodeBlock (toCodeBlock, runCodeBlock, CodeBlock) where
 
@@ -70,19 +70,23 @@ compCmd c@(Cmd (R.BasicCmd cn) args) = do
        ti <- getTag cn
        nargs <- (mapM compToken args >>= return . Right) `ifFails` (Left args)
        return $ CompCmd (Just ti) nargs c
-compCmd _ = fail "no compile"
+compCmd a = fail $ "no compile" ++ show a
 
-data CToken = Lit !T.TclObj | CatLst [CToken] 
-              | CmdTok [CompCmd]| ExpTok (CToken)
-              | VarRef !(NSQual VarName) | ArrRef !(Maybe NSTag) !BString (CToken)
-              | Block !T.TclObj
+data CToken
+  = Lit !T.TclObj
+  | CatLst [CToken]
+  | CmdTok [CompCmd]
+  | ExpTok CToken
+  | VarRef !(NSQual VarName)
+  | ArrRef !(Maybe NSTag) !BString CToken
+  | Block !T.TclObj
 
 compToken tok = case tok of
-  R.CmdTok t -> mapM compCmd t >>= return . CmdTok
-  R.ExpTok t -> compToken t >>= return . ExpTok
+  R.CmdTok t        -> mapM compCmd t >>= return . CmdTok
+  R.ExpTok t        -> ExpTok <$> compToken t
   R.ArrRef mtag n t -> compToken t >>= \nt -> return $ ArrRef mtag n nt
-  R.VarRef v -> return $ VarRef v
-  R.Block s p -> return (Block (T.fromBlock s p))
+  R.VarRef v        -> return $ VarRef v
+  R.Block s p       -> return (Block (T.fromBlock s p))
   R.Lit s           -> return $! Lit (T.fromBStr s)
   R.LitInt i        -> return $! Lit (T.fromInt i)
   R.CatLst lst      -> mapM compToken lst >>= return . CatLst
@@ -96,11 +100,11 @@ invalidateCache (CmdCache carr) = do
 getCacheCmd (CmdCache carr) (CmdTag cind cn) = do
   (mcmd,_) <- liftIO $! readArray carr cind
   case mcmd of
-    Just _ -> return mcmd
+    Just _  -> return mcmd
     Nothing -> do
        mcmd2 <- getCmdNS cn
        case mcmd2 of
-         Nothing -> return Nothing
+         Nothing  -> return Nothing
          Just cmd -> do
            let act al = cmd `applyTo` al
            let jact = Just act
@@ -122,15 +126,15 @@ evalCompCmd cc (CompCmd mct nargs c) =
 evalCompArgs cmdFn al = evalCTokens al [] where
     evalCTokens []     !acc = return $ reverse acc
     evalCTokens (x:xs) !acc = case x of
-            Lit s     -> next s 
-            CmdTok t  -> cmdFn t >>= next
-            Block o   -> next o
-            VarRef vn -> varGetNS vn >>= next
+            Lit s         -> next s
+            CmdTok t      -> cmdFn t >>= next
+            Block o       -> next o
+            VarRef vn     -> varGetNS vn >>= next
             ArrRef ns n i -> do
                  ni <- evalArgs_ [i] >>= return . T.asBStr . head
                  varGetNS (NSQual ns (arrName n ni)) >>= next
-            CatLst l -> evalArgs_ l >>= next . T.fromBStr . B.concat . map T.asBStr
-            ExpTok t -> do 
+            CatLst l      -> evalArgs_ l >>= next . T.fromBStr . B.concat . map T.asBStr
+            ExpTok t      -> do
                  [rs] <- evalArgs_ [t]
                  l <- T.asList rs
                  evalCTokens xs ((reverse l) ++ acc)
@@ -138,7 +142,7 @@ evalCompArgs cmdFn al = evalCTokens al [] where
            {-# INLINE next #-}
            evalArgs_ args = evalCTokens args []
 
-evalThem cc lst = go lst
+evalThem cc = go
  where run_eval = evalCompCmd cc 
        go []     = ret
        go [x]    = run_eval x

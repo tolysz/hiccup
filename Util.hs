@@ -11,6 +11,10 @@ import Control.Monad.Except
 import Data.List(intersperse)
 import Test.HUnit
 import Data.Char (toLower)
+import Control.Exception.Base
+import Control.Monad.Trans.Except
+import Control.Applicative
+-- import TclErr
 
 type BString = B.ByteString
 
@@ -30,8 +34,15 @@ mapSnd f = map (\(a,b) -> (a, f b))
 {-# INLINE mapSnd #-}
 mapFst f = map (\(a,b) -> (f a, b))
 
+-- catchAny :: TclM -> (SomeException -> IO a) -> TclM a
+-- catchAny = catch
+
+-- ifFails :: MonadError e m => m a -> a -> m a
 ifFails f v = f `catchError` (\_ -> return v)
+-- ifFails f v = (f <|> return v)
+-- `catchIOError` (const (return v) )
 {-# INLINE ifFails #-}
+
 
 slurpFile fname = do dat <- B.readFile fname 
                      B.length dat `seq` return dat

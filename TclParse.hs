@@ -139,10 +139,15 @@ listElt = try parseBlock <|> try parseStr <|> getListItem
 
 getListItem = do
   s <- getInput
-  let w = B.take (listItemEnd s) s
-  if w == 0
+  let l = listItemEnd s
+
+  if l == 0
    then fail "can't parse list item"
-   else count (B.length w) anyChar *> return w
+   else
+     let
+       w = B.take l s
+     in
+       count l anyChar *> return w
 
 listItemEnd s = inner 0 False where 
    isTerminal = (`B.elem` "{}\" \t\n")

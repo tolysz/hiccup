@@ -8,6 +8,7 @@ import qualified Data.Map as Map
 import Data.IORef
 import qualified TclObj as T
 import qualified EventMgr as Evt
+import Control.Applicative
 
 import Util
 import TclErr
@@ -18,6 +19,10 @@ class Runnable t where
 
 newtype TclM a = TclM { unTclM :: ExceptT Err (StateT TclState IO) a }
  deriving (MonadState TclState, MonadIO, Applicative, Functor, Monad, MonadError Err)
+
+-- instance Alternative TclM where
+-- instance Exception (TclM Err) where
+
 
 data Namespace = TclNS
   { nsName      ::  BString

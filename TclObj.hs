@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -XTypeSynonymInstances -XMultiParamTypeClasses  -XFlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances, MultiParamTypeClasses, FlexibleInstances #-}
 {-# LANGUAGE BangPatterns #-}
 module TclObj (
  TclObj
@@ -44,11 +44,12 @@ import VarName (parseVarName)
 
 import Test.HUnit
 
-data TclObj = TclInt !Int BString |
-              TclDouble !Double BString |
-              TclList !(S.Seq TclObj) BString |
-              TclBStr !BString (Maybe Int) !ParseResult
-  deriving (Show,Eq)
+data TclObj
+  = TclInt !Int BString
+  | TclDouble !Double BString
+  | TclList !(S.Seq TclObj) BString
+  | TclBStr !BString (Maybe Int) !ParseResult
+     deriving (Show,Eq)
 
 mkTclStr s  = mkTclBStr (pack s)
 mkTclBStr s = TclBStr s (maybeInt s) (makeParsed s)

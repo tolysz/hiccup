@@ -82,7 +82,6 @@ import qualified Data.Map as Map
 import Data.IORef
 import Data.Unique
 import Control.Monad.Except
-
 import Proc.Params
 
 import Internal.Types
@@ -99,6 +98,8 @@ import TclErr
 import Util
 import CmdList
 
+
+-- import qualified Control.Monad.Except as E
 import Test.HUnit
 
 getOrigin :: TclCmdObj -> TclM NSRef
@@ -193,6 +194,8 @@ lookupInterp n = do
      Nothing -> tclErr $ "could not find interpreter " ++ show n
      Just v  -> return v
 
+
+getInterp :: [BString] -> TclM Interp
 getInterp nl = do
   ir <- get >>= io . newIORef >>= return . Interp
   inner ir nl
@@ -220,7 +223,7 @@ deleteInterp path = case path of
    deleteInterp nx `inInterp` i
  _ -> fail "invalid interp path"
 
-interpHide path name = do
+interpHide path name =
   getInterp path >>= \i -> (hideCmd name) `inInterp` i
 
 hideCmd name = do
@@ -352,7 +355,7 @@ getCmdNS (NSQual nst n) =
   tryHere `ifNoResult` tryPaths `ifNoResult` tryGlobal
  where
   tryHere = getNamespaceHere nst >>= getCmdNorm n
-  ifNoResult f v = (f `ifFails` Nothing) >>= 
+  ifNoResult f v = (f `ifFails` Nothing) >>=
                             \r -> case r of
                                    Nothing -> v
                                    _       -> return $! r
@@ -426,13 +429,16 @@ varSetNS qvn v = usingNsFrame qvn (\n f -> varSet n v f)
 varSetHere vn v = getFrame >>= varSet vn v
 {-# INLINE varSetHere #-}
 
+varSet :: VarName -> T.TclObj -> FrameRef -> TclM T.TclObj
 varSet vn v frref = do
      isUpped <- upped (vnName vn) frref 
      case isUpped of
          Nothing    -> modVar (vnName vn) >> return v
          Just (f,s) -> varSet (vn {vnName = s}) v f
- where cantSetErr why = fail $ "can't set " ++ showVN vn ++ ":" ++ why
-       modVar str = do
+ where
+   cantSetErr :: String -> TclM TclVar
+   cantSetErr why = fail $ "can't set " ++ showVN vn ++ ":" ++ why
+   modVar str = do
          vm <- getFrameVars frref
          newVal <- case vnInd vn of
              Nothing -> case fmap snd (Map.lookup str vm) of
@@ -463,26 +469,27 @@ varUnset vn frref = do
      case isUpped of
          Nothing    -> modVar >> ret
          Just (f,s) -> do 
-             when (not (isArr vn)) $ do 
+             unless (isArr vn) $
                  changeUpMap frref (Map.delete (vnName vn))
              varUnset (vn {vnName = s}) f
- where noExist = cantUnset "no such variable" 
-       cantUnset why = fail $ "can't unset " ++ showVN vn ++ ": " ++ why
-       modArr v f = ArrayVar (f v)
-       modVar = do
-         vm <- getFrameVars frref
-         let str = vnName vn
-         val <- maybe noExist (return . snd) (Map.lookup str vm)
-         case vnInd vn of
-           Nothing -> case val of
-                       Undefined -> noExist
-                       _         -> deleteVar frref str
-           Just i  -> case val of
-                        ArrayVar prev -> case Map.lookup i prev of 
-                                           Nothing -> cantUnset "no such element in array"
-                                           Just _  -> insertVar frref str (prev `modArr` (Map.delete i))
-                        ScalarVar _   -> cantUnset "variable isn't array"
-                        _             -> noExist
+ where
+   noExist = cantUnset "no such variable"
+   cantUnset why = fail $ "can't unset " ++ showVN vn ++ ": " ++ why
+   modArr v f = ArrayVar (f v)
+   modVar = do
+     vm <- getFrameVars frref
+     let str = vnName vn
+     val <- maybe noExist (return . snd) (Map.lookup str vm)
+     case vnInd vn of
+       Nothing -> case val of
+         Undefined -> noExist
+         _         -> deleteVar frref str
+       Just i  -> case val of
+         ArrayVar prev -> case Map.lookup i prev of
+                            Nothing -> cantUnset "no such element in array"
+                            Just _  -> insertVar frref str (prev `modArr` (Map.delete i))
+         ScalarVar _   -> cantUnset "variable isn't array"
+         _             -> noExist
 
 usingNsFrame :: NSQual VarName -> (VarName -> FrameRef -> TclM RetVal) -> TclM RetVal 
 usingNsFrame (NSQual !ns !vn) f = lookupNsFrame ns >>= f vn
@@ -535,8 +542,8 @@ varGet' vn !frref = do
   var <- varLookup (vnName vn) frref
   case var of
    Nothing -> cantReadErr "no such variable"
-   Just o  -> o `getInd` (vnInd vn)
- where cantReadErr why  = fail $ "can't read " ++ showVN vn ++ ": " ++ why
+   Just o  -> o `getInd` vnInd vn
+ where cantReadErr why  = throwError $ Err 1 Nothing -- $ Just SStr$ "can't read " ++ showVN vn ++ ": " ++ why
        getInd (ScalarVar o) Nothing = return $! o
        getInd (ArrayVar o) (Just i) = case Map.lookup i o of
                                          Just v -> return $! v
@@ -552,8 +559,8 @@ uplevel i p = do
   (curr,new) <- liftM (splitAt i) getStack
   when (null new) (fail ("bad level: " ++ show i))
   putStack new
-  res <- p `ensure` (modStack (curr ++))
-  return res
+  p `ensure` modStack (curr ++)
+
 {-# INLINE uplevel #-}
 
 getUpFrame i = do st <- getStack
@@ -692,13 +699,12 @@ forgetNS name = do
         nsr <- getNamespaceHere nst
         exported <- getExports nsr n
         cns <- getCurrNS
-        mapM_ (\x -> deleteCmd x cns) exported
+        mapM_ (`deleteCmd` cns) exported
      Nothing -> do
        mCmd <- getCmdNS qns 
        case mCmd of
          Just cmd -> whenJust (cmdParent cmd) $ \_ -> removeCmd cmd
          Nothing -> fail "no such command to forget"
-
 
 setFrNS !frref !nsr = modifyIORef frref (\f -> f { frNS = nsr })
 
@@ -714,13 +720,13 @@ withScope !frref fun = do
   stack <- getStack
   -- when (length stack > 10000) (tclErr $ "Stack too deep: " ++ show 10000)
   putStack $! frref : stack
-  fun `ensure` (modStack (drop 1))
+  fun `ensure` modStack (drop 1)
 
 mkEmptyNS name parent = do
     pname <- liftM nsName (readIORef parent)
     emptyFr <- createFrame emptyVarMap
     new <- newIORef $ (emptyNS (fixNSName pname name) emptyFr) { nsParent = Just parent }
-    parent `modifyIORef` (addChildNS name new)
+    parent `modifyIORef` addChildNS name new
     setFrNS emptyFr new
     return $! new
 
@@ -862,14 +868,15 @@ commonTests = TestList [ setTests, getTests, unsetTests, withScopeTests ] where
   name = b "varname"
   int = T.fromInt
 
-  setTests = TestList [
-       "set exists" ~: (varSetRaw (b "x") (int 1)) `checkExists` "x"
-       ,"set exists2" ~: (varSetRaw (b "boogie") (int 1)) `checkExists` "boogie"
-       ,"checkeq" ~: checkEq (varSetRaw name value) "varname" value
-     ]
-    where evalGetHead a = evalClean a >>= return . head . snd 
-          checkExists a n = evalGetHead a >>= vExists n
-          checkEq a n val = evalGetHead a >>= \v -> vEq n v val
+  setTests = TestList
+    [ "set exists" ~: varSetRaw (b "x") (int 1) `checkExists` "x"
+    , "set exists2" ~: varSetRaw (b "boogie") (int 1) `checkExists` "boogie"
+    , "checkeq" ~: checkEq (varSetRaw name value) "varname" value
+    ]
+     where
+       evalGetHead a = evalClean a >>= return . head . snd
+       checkExists a n = evalGetHead a >>= vExists n
+       checkEq a n val = evalGetHead a >>= \v -> vEq n v val
 
   withScopeTests = TestList [
       "with scope" ~: getVM (varSetRaw (b "x") (int 1)) (\m -> not (Map.null m))
@@ -880,7 +887,6 @@ commonTests = TestList [ setTests, getTests, unsetTests, withScopeTests ] where
                          Left e -> error (show e)
                          Right _ -> do vm <- readVars vmr
                                        assertBool "getVM" (c vm)
-
 
   getTests = TestList [
        "non-exist" ~: (varGetRaw (b "boo")) `checkErr` "can't read \"boo\": no such variable"

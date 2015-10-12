@@ -19,7 +19,7 @@ Library
     ghc-options:         -O2 -funbox-strict-fields -W
     -- -fglasgow-exts
     ghc-prof-options:    -auto-all -prof
-    extensions:          BangPatterns
+    default-extensions: BangPatterns, OverloadedStrings
     exposed-modules: Hiccup, TclObj, Extend
     build-depends: base
                  , HUnit < 1.3
@@ -34,6 +34,7 @@ Library
                  , array
                  , regex-posix
                  , directory
+                 , transformers
     other-modules: TObj
                  , VarName
                  , Common
@@ -91,6 +92,7 @@ Executable hiccup
                  , array
                  , directory
                  , random
+                 , transformers
     main-is:     Main.hs
     hs-source-dir: exec
 
