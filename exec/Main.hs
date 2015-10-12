@@ -8,7 +8,8 @@ import qualified TclObj as T
 import Extend
 import Control.Monad
 -- import System.Console.Editline.Readline
-import System.Console.Readline
+-- import System.Console.Readline
+import System.Console.Haskeline
 import qualified Data.ByteString.Char8 as B
 
 main = do args <- getArgs 

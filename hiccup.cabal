@@ -27,7 +27,7 @@ Library
                  , mtl
                  , parsec
                  , bytestring
-                 , readline
+             --    , readline
                  , containers
                  , random
                  , unix
@@ -79,8 +79,9 @@ Executable hiccup
     default-language: Haskell2010
     ghc-options:         -O2 -funbox-strict-fields -W
     build-depends: base
-                 , readline
+               --  , readline
                  , hiccup
+                 , haskeline
                  , bytestring
                  , containers
                  , HUnit < 1.3
